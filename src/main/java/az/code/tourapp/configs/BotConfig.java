@@ -37,6 +37,7 @@ public class BotConfig {
         TourBot bot = new TourBot(questionRepo, actionRepo, token, username, baseUrl, apiUrl);
         try {
             bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
+            bot.getCommands().put(new Command("stop", "Stops bot current interrogation."), bot::stop);
             bot.execute(SetMyCommands.builder()
                     .commands(new ArrayList<>(bot.getCommands().keySet()))
                     .build());

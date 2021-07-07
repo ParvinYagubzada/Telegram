@@ -2,16 +2,13 @@ package az.code.tourapp.exceptions;
 
 import az.code.tourapp.enums.Locale;
 
+@SuppressWarnings("ALL")
 public class AlreadyHaveSessionException extends RuntimeException implements CustomException{
 
-    String text = "You can not select or type option other than provided.";
-    String text_az = "Verilən seçimlərdən kənar seçim seçmək və ya yazmaq olmaz.";
-    String text_ru = "nüll"; //TODO: Russian
-
-    public AlreadyHaveSessionException() {
-        super("You already have a open request. You can continue previous request or you can end it by" +
-                "writing \"/stop\" command.");
-    }
+    //TODO: Add translations.
+    String text = "You already have a open request. You can continue previous request or you can end it by writing \"stop\" command.";
+    String text_az = "You already have a open request. You can continue previous request or you can end it by writing \"stop\" command.";
+    String text_ru = "You already have a open request. You can continue previous request or you can end it by writing \"stop\" command.";
 
     @Override
     public String getText(Locale locale) {

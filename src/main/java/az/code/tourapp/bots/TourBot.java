@@ -72,21 +72,36 @@ public class TourBot extends TelegramWebhookBot {
     @SneakyThrows
     public void interrogate(Update update) {
         //TODO: Search org.springframework.data.domain.Example
-        if (userState.get(update.getMessage().getChatId().toString()) != null)
-            createErrorMessage(new AlreadyHaveSessionException(),update.getMessage().getChatId().toString());
+        String chatId = update.getMessage().getChatId().toString();
+        if (userState.get(chatId) != null)
+            createErrorMessage(new AlreadyHaveSessionException(), chatId);
         Question question = questionRepo.findById(1L).orElseThrow(MissingFirstQuestionException::new);
-        userLang.put(update.getMessage().getChatId().toString(), null);
-        userState.put(update.getMessage().getChatId().toString(), question);
-        createReply(update.getMessage().getChatId().toString(), question);
+        userLang.put(chatId, null);
+        userState.put(chatId, question);
+        createReply(chatId, question);
+    }
+
+    @SneakyThrows
+    public void stop(Update update) {
+        String chatId = update.getMessage().getChatId().toString();
+        if (userState.get(chatId) == null) {
+            createErrorMessage(new NoSuchSessionException(), chatId);
+        } else {
+            userState.put(chatId, null);
+            sendCustomMessage(chatId, "Your request cancelled!");
+        }
     }
 
     private void handleMessage(Message message) throws TelegramApiException {
         String chatId = message.getChatId().toString();
         Question currentQuestion = userState.get(chatId);
-        String answer = message.getText();
+        if (currentQuestion == null) {
+            createErrorMessage(new NoSuchSessionException(), chatId);
+            return;
+        }
         if (handleLanguage(message, chatId)) return;
         userData.computeIfAbsent(chatId, k -> new HashMap<>());
-        userData.get(chatId).put(currentQuestion.getId(), answer);
+        userData.get(chatId).put(currentQuestion.getId(), message.getText());
         try {
             Question nextQuestion = currentQuestion.findNext(message.getText(), userLang.get(chatId));
             handleNextQuestion(message, chatId, nextQuestion);
@@ -96,9 +111,8 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void handleNextQuestion(Message message, String chatId, Question nextQuestion) throws TelegramApiException {
-        if (nextQuestion != null) {
+        if (createReply(message.getChatId().toString(), nextQuestion)) {
             userState.put(chatId, nextQuestion);
-            createReply(message.getChatId().toString(), nextQuestion);
         } else {
             userState.put(chatId, null);
             System.out.println(userData.get(chatId));
@@ -129,16 +143,28 @@ public class TourBot extends TelegramWebhookBot {
         execute(message);
     }
 
-    private void createReply(String chatId, Question question) throws TelegramApiException {
+    private void sendCustomMessage(String chatId, String myMessage) throws TelegramApiException {
+        SendMessage message = SendMessage.builder()
+                .chatId(chatId)
+                .text(myMessage)
+                .build();
+        execute(message);
+    }
+
+    private boolean createReply(String chatId, Question question) throws TelegramApiException {
+        boolean result = true;
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
                 .text(question.getText(userLang.get(chatId)))
                 .build();
         List<Action> actions = actionRepo.findAllByBaseQuestionOrderById(question);
-        if (actions.size() != 1) {
+        if (actions.size() == 0) {
+            result = false;
+        } else if (actions.size() != 1) {
             message.setReplyMarkup(createKeyboard(chatId, actions));
         }
         execute(message);
+        return result;
     }
 
     private ReplyKeyboardMarkup createKeyboard(String chatId, List<Action> actions) {
