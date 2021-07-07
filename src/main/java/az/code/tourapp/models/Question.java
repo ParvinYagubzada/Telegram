@@ -22,12 +22,12 @@ import java.util.regex.Pattern;
 public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
-    String context;
-    String context_az;
-    String context_ru;
+    private Long id;
+    private String context;
+    private String context_az;
+    private String context_ru;
     @OneToMany(mappedBy = "baseQuestion", fetch = FetchType.EAGER)
-    List<Action> actions;
+    private List<Action> actions;
 
     public Question findNext(String actionText, Locale locale) {
         if (this.actions.size() != 1) {

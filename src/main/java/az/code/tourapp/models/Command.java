@@ -5,7 +5,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import java.util.Objects;
 
 public class Command extends BotCommand {
-    String command;
+    private final String command;
 
     public Command(String command) {
         this.command = command;
