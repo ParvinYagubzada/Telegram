@@ -1,7 +1,7 @@
 spring:
   datasource:
-#    url: jdbc:postgresql://192.168.0.100:5432/tour
-    url: jdbc:postgresql://localhost:5432/tour
+    url: jdbc:postgresql://192.168.0.100:5432/tour
+#    url: jdbc:postgresql://localhost:5432/tour
     username: postgres
     password: 3262015Aze3262!
     driver-class-name: org.postgresql.Driver
