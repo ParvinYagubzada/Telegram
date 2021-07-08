@@ -1,4 +1,4 @@
-package az.code.tourapp.models;
+package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
