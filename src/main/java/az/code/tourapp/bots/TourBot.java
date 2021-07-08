@@ -33,7 +33,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -120,7 +119,7 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
-    public boolean sendResponse(String uuid, MultipartFile file) throws IOException, TelegramApiException {
+    public boolean sendResponse(String uuid, MultipartFile file) throws TelegramApiException {
         String fileName = UUID.randomUUID().toString();
         Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElseThrow(NoSuchRequestException::new);
         String chatId = request.getChatId();
@@ -247,7 +246,7 @@ public class TourBot extends TelegramWebhookBot {
                     .data(data.data().toString())
                     .status(true)
                     .build());
-            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());//userData.get(chatId)
+            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());
             cache.deleteByChatId(chatId);
         }
     }
