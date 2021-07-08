@@ -9,9 +9,10 @@ import org.springframework.data.redis.core.RedisHash;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-@RedisHash("data")
+@RedisHash("userdata")
 @Data
 @Builder
 @Accessors(fluent = true)
@@ -21,5 +22,5 @@ import java.util.Map;
 public class UserData implements Serializable {
     Locale userLang;
     Question currentQuestion;
-    Map<Long, String> data = new HashMap<>();
+    Map<String, String> data = new HashMap<>();
 }
