@@ -11,7 +11,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-@RedisHash("data")
+@RedisHash("userdata")
 @Data
 @Builder
 @Accessors(fluent = true)

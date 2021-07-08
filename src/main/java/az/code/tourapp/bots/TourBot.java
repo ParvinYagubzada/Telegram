@@ -4,26 +4,36 @@ import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
 import az.code.tourapp.models.Command;
+import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.models.UserData;
 import az.code.tourapp.models.entities.Action;
+import az.code.tourapp.models.entities.Offer;
 import az.code.tourapp.models.entities.Question;
 import az.code.tourapp.models.entities.Request;
-import az.code.tourapp.repositories.ActionRepository;
-import az.code.tourapp.repositories.QuestionRepository;
-import az.code.tourapp.repositories.RedisRepository;
-import az.code.tourapp.repositories.RequestRepository;
+import az.code.tourapp.repositories.*;
+import az.code.tourapp.services.FilesStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import org.springframework.web.multipart.MultipartFile;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -31,9 +41,12 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class TourBot extends TelegramWebhookBot {
 
+    private final FilesStorageService store;
+
     private final QuestionRepository questionRepo;
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
+    private final OfferRepository offerRepository;
     private final RedisRepository cache;
 
     private final String token;
@@ -42,10 +55,30 @@ public class TourBot extends TelegramWebhookBot {
     private final String apiUrl;
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
+    private final Map<String, Integer> userOffers = new HashMap<>();
+    private final Map<String, Integer> loadMoreMessages = new HashMap<String, Integer>();
+    private final Map<String, CustomMessage> messages = new HashMap<>();
+
+    @PostConstruct
+    private void init() {
+        messages.put("loadMore", CustomMessage.builder()
+                .context("Load more.")
+                .context_az("Daha çox yüklə.")
+                .context_ru("Tercumeciye ehtiyac var.")
+                .build());
+        messages.put("loadMoreMessage", CustomMessage.builder()
+                .context("You have %d more offers.")
+                .context_az("Sizin daha %d təklifiniz var.")
+                .context_ru("%d tercumeciye ehtiyac var.")
+                .build());
+    }
 
     @SneakyThrows
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
+        if (update.hasCallbackQuery()) {
+            handleCallbackQuery(update.getCallbackQuery());
+        }
         if (update.hasMessage() && update.getMessage().hasText()) {
             String msg = update.getMessage().getText();
             if (msg.startsWith("/")) {
@@ -81,8 +114,101 @@ public class TourBot extends TelegramWebhookBot {
             createErrorMessage(new NoSuchSessionException(), chatId);
         } else {
             cache.deleteByChatId(chatId);
+            userOffers.remove(chatId);
             requestRepo.deactivate(chatId);
             sendCustomMessage(chatId, "Your request cancelled!");
+        }
+    }
+
+    public boolean sendResponse(String uuid, MultipartFile file) throws IOException, TelegramApiException {
+        String fileName = UUID.randomUUID().toString();
+        Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElseThrow(NoSuchRequestException::new);
+        String chatId = request.getChatId();
+        store.save(file, fileName);
+        if (!userOffers.containsKey(chatId) || userOffers.get(chatId) < 5) {
+            Integer value = userOffers.get(chatId) != null ? userOffers.get(chatId) + 1 : 1;
+            userOffers.put(chatId, value);
+            sendOfferPhoto(fileName, chatId);
+            store.delete(fileName);
+        } else {
+            offerRepository.save(Offer.builder().uuid(uuid).chatId(chatId).photoUrl(fileName).build());
+            handleLoadMore(chatId, uuid, request);
+        }
+        return true;
+    }
+
+    @SneakyThrows
+    private void sendOfferPhoto(String fileName, String chatId) {
+        SendPhoto sendPhoto = SendPhoto.builder()
+                .chatId(chatId)
+                .photo(new InputFile(store.load(fileName).getFile())).build();
+        execute(sendPhoto);
+    }
+
+    private Locale extractLocale(String data) {
+        int start = data.indexOf("=") + 1;
+        int end = data.indexOf(",");
+        return Locale.valueOf(data.substring(start, end));
+    }
+
+    private SendMessage loadMore(String chatId, String uuid, Locale locale, Integer count) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(String.format(messages.get("loadMoreMessage").getText(locale), count));
+        InlineKeyboardMarkup kb = createInlineKeyboardMarkup(uuid, locale);
+        message.setReplyMarkup(kb);
+        return message;
+    }
+
+    private EditMessageText refreshMessage(String chatId, String uuid, Integer messageId, Locale locale, Integer count) {
+        EditMessageText message = new EditMessageText();
+        message.setChatId(chatId);
+        message.setMessageId(messageId);
+        message.setText(String.format(messages.get("loadMoreMessage").getText(locale), count));
+        InlineKeyboardMarkup kb = createInlineKeyboardMarkup(uuid, locale);
+        message.setReplyMarkup(kb);
+        return message;
+    }
+
+    private InlineKeyboardMarkup createInlineKeyboardMarkup(String uuid, Locale locale) {
+        InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        List<InlineKeyboardButton> sub = new ArrayList<>();
+        sub.add(InlineKeyboardButton.builder()
+                .callbackData("loadMore&" + uuid)
+                .text(messages.get("loadMore").getText(locale))
+                .build());
+        keyboard.add(sub);
+        kb.setKeyboard(keyboard);
+        return kb;
+    }
+
+    private void handleCallbackQuery(CallbackQuery query) throws TelegramApiException {
+        String chatId = query.getMessage().getChatId().toString();
+        String uuid = query.getData().split("&")[1];
+        List<Offer> list = offerRepository.findTop5ByChatIdOrderByTimeStampAsc(chatId);
+        Request request = requestRepo.findByUuid(uuid);
+        offerRepository.deleteAll(list);
+        execute(DeleteMessage.builder()
+                .chatId(chatId)
+                .messageId(loadMoreMessages.get(chatId)).build());
+        list.forEach(offer -> sendOfferPhoto(offer.getPhotoUrl(), chatId));
+        store.deleteAll(list);
+        loadMoreMessages.remove(chatId);
+        handleLoadMore(chatId, uuid, request);
+    }
+
+    private void handleLoadMore(String chatId, String uuid, Request request) throws TelegramApiException {
+        int count = offerRepository.countAllByChatId(chatId);
+        if (count != 0) {
+            if (!loadMoreMessages.containsKey(chatId)) {
+                loadMoreMessages.put(chatId, execute(loadMore(chatId, uuid, extractLocale(request.getData()),
+                        count)).getMessageId());
+            } else {
+                execute(refreshMessage(chatId, uuid, loadMoreMessages.get(chatId),
+                        extractLocale(request.getData()),
+                        count));
+            }
         }
     }
 
