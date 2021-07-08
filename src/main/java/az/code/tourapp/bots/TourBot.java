@@ -56,7 +56,7 @@ public class TourBot extends TelegramWebhookBot {
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
     private final Map<String, Integer> userOffers = new HashMap<>();
-    private final Map<String, Integer> loadMoreMessages = new HashMap<String, Integer>();
+    private final Map<String, Integer> loadMoreMessages = new HashMap<>();
     private final Map<String, CustomMessage> messages = new HashMap<>();
 
     @PostConstruct
@@ -110,7 +110,7 @@ public class TourBot extends TelegramWebhookBot {
     @SneakyThrows
     public void stop(Update update) {
         String chatId = update.getMessage().getChatId().toString();
-        if (!requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) && cache.findByChatId(chatId) == null) {//userState.get(chatId)
+        if (!requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) && cache.findByChatId(chatId) == null) {
             createErrorMessage(new NoSuchSessionException(), chatId);
         } else {
             cache.deleteByChatId(chatId);
@@ -146,8 +146,9 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private Locale extractLocale(String data) {
-        int start = data.indexOf("=") + 1;
-        int end = data.indexOf(",");
+        String fieldName = "language=";
+        int start = data.indexOf(fieldName) + fieldName.length();
+        int end = data.indexOf(",", start);
         return Locale.valueOf(data.substring(start, end));
     }
 
@@ -224,9 +225,9 @@ public class TourBot extends TelegramWebhookBot {
         if ((data = handleLanguage(data, message, chatId)).userLang() == null) return;
         if (data.data() == null)
             data.data(new HashMap<>());
-        data.data().put(currentQuestion.getId(), message.getText());
+        data.data().put(currentQuestion.getFieldName(), message.getText());
         try {
-            Question nextQuestion = currentQuestion.findNext(message.getText(), data.userLang());//userLang.get(chatId)
+            Question nextQuestion = currentQuestion.findNext(message.getText(), data.userLang());
             handleNextQuestion(data, message, chatId, nextQuestion);
         } catch (IllegalOptionException | InputMismatchException exception) {
             createErrorMessage(exception, chatId);
