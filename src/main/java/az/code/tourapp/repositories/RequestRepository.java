@@ -1,6 +1,6 @@
 package az.code.tourapp.repositories;
 
-import az.code.tourapp.models.Request;
+import az.code.tourapp.models.entities.Request;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

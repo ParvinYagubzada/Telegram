@@ -4,6 +4,7 @@ import az.code.tourapp.bots.TourBot;
 import az.code.tourapp.models.Command;
 import az.code.tourapp.repositories.ActionRepository;
 import az.code.tourapp.repositories.QuestionRepository;
+import az.code.tourapp.repositories.RedisRepository;
 import az.code.tourapp.repositories.RequestRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,7 @@ public class BotConfig {
     private final QuestionRepository questionRepo;
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
+    private final RedisRepository redisRepo;
 
     @Value("${telegram.bot.token}")
     String token;
@@ -30,15 +32,16 @@ public class BotConfig {
     @Value("${app.api.url}")
     String apiUrl;
 
-    public BotConfig(QuestionRepository questionRepo, ActionRepository actionRepo, RequestRepository requestRepo) {
+    public BotConfig(QuestionRepository questionRepo, ActionRepository actionRepo, RequestRepository requestRepo, RedisRepository redisRepo) {
         this.questionRepo = questionRepo;
         this.actionRepo = actionRepo;
         this.requestRepo = requestRepo;
+        this.redisRepo = redisRepo;
     }
 
     @Bean
     WebhookBot getBot() {
-        TourBot bot = new TourBot(questionRepo, actionRepo, requestRepo, token, username, baseUrl, apiUrl);
+        TourBot bot = new TourBot(questionRepo, actionRepo, requestRepo, redisRepo, token, username, baseUrl, apiUrl);
         try {
             bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
             bot.getCommands().put(new Command("stop", "Stops bot current interrogation."), bot::stop);

@@ -3,13 +3,16 @@ package az.code.tourapp.bots;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
-import az.code.tourapp.models.Action;
 import az.code.tourapp.models.Command;
-import az.code.tourapp.models.Question;
-import az.code.tourapp.models.Request;
+import az.code.tourapp.models.UserData;
+import az.code.tourapp.models.entities.Action;
+import az.code.tourapp.models.entities.Question;
+import az.code.tourapp.models.entities.Request;
 import az.code.tourapp.repositories.ActionRepository;
 import az.code.tourapp.repositories.QuestionRepository;
+import az.code.tourapp.repositories.RedisRepository;
 import az.code.tourapp.repositories.RequestRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -25,11 +28,13 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
 
+@RequiredArgsConstructor
 public class TourBot extends TelegramWebhookBot {
 
     private final QuestionRepository questionRepo;
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
+    private final RedisRepository cache;
 
     private final String token;
     private final String username;
@@ -37,27 +42,10 @@ public class TourBot extends TelegramWebhookBot {
     private final String apiUrl;
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
-    private final Map<String, Map<Long, String>> userData = new HashMap<>();
-    private final Map<String, Question> userState = new HashMap<>();
-    private final Map<String, Locale> userLang = new HashMap<>();
-
-    public TourBot(QuestionRepository questionRepo, ActionRepository actionRepo, RequestRepository requestRepo,
-                   String token, String username, String baseUrl, String apiUrl) {
-        this.questionRepo = questionRepo;
-        this.actionRepo = actionRepo;
-        this.requestRepo = requestRepo;
-        this.token = token;
-        this.username = username;
-        this.baseUrl = baseUrl;
-        this.apiUrl = apiUrl;
-    }
 
     @SneakyThrows
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
-        /*        if (update.hasCallbackQuery()) {
-            handleCallback(update.getCallbackQuery());
-        }*/
         if (update.hasMessage() && update.getMessage().hasText()) {
             String msg = update.getMessage().getText();
             if (msg.startsWith("/")) {
@@ -75,92 +63,91 @@ public class TourBot extends TelegramWebhookBot {
 
     @SneakyThrows
     public void interrogate(Update update) {
-        //TODO: Search org.springframework.data.domain.Example
         String chatId = update.getMessage().getChatId().toString();
-        if (requestRepo.existsAllByChatIdAndStatusIsTrue(chatId)) {
+        if (requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) || cache.findByChatId(chatId) != null) {
             createErrorMessage(new AlreadyHaveSessionException(), chatId);
             return;
         }
         Question question = questionRepo.findById(1L).orElseThrow(MissingFirstQuestionException::new);
-        userLang.put(chatId, null);
-        userState.put(chatId, question);
-        createReply(chatId, question);
+        UserData data = UserData.builder().userLang(null).currentQuestion(question).build();
+        cache.saveByChatId(chatId, data);
+        createReply(data, chatId, question);
     }
 
     @SneakyThrows
     public void stop(Update update) {
         String chatId = update.getMessage().getChatId().toString();
-        if (!requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) && userState.get(chatId) == null) {
+        if (!requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) && cache.findByChatId(chatId) == null) {//userState.get(chatId)
             createErrorMessage(new NoSuchSessionException(), chatId);
         } else {
-            userState.remove(chatId);
-            userData.remove(chatId);
-            userLang.remove(chatId);
+            cache.deleteByChatId(chatId);
             requestRepo.deactivate(chatId);
             sendCustomMessage(chatId, "Your request cancelled!");
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     private void handleMessage(Message message) throws TelegramApiException {
         String chatId = message.getChatId().toString();
-        Question currentQuestion = userState.get(chatId);
+        UserData data = cache.findByChatId(chatId);
+        Question currentQuestion = data.currentQuestion();
         if (currentQuestion == null) {
             createErrorMessage(new NoSuchSessionException(), chatId);
             return;
         }
-        if (handleLanguage(message, chatId)) return;
-        userData.computeIfAbsent(chatId, k -> new HashMap<>());
-        userData.get(chatId).put(currentQuestion.getId(), message.getText());
+        if ((data = handleLanguage(data, message, chatId)).userLang() == null) return;
+        if (data.data() == null)
+            data.data(new HashMap<>());
+        data.data().put(currentQuestion.getId(), message.getText());
         try {
-            Question nextQuestion = currentQuestion.findNext(message.getText(), userLang.get(chatId));
-            handleNextQuestion(message, chatId, nextQuestion);
+            Question nextQuestion = currentQuestion.findNext(message.getText(), data.userLang());//userLang.get(chatId)
+            handleNextQuestion(data, message, chatId, nextQuestion);
         } catch (IllegalOptionException | InputMismatchException exception) {
             createErrorMessage(exception, chatId);
         }
     }
 
-    private void handleNextQuestion(Message message, String chatId, Question nextQuestion) throws TelegramApiException {
-        if (createReply(message.getChatId().toString(), nextQuestion)) {
-            userState.put(chatId, nextQuestion);
+    private void handleNextQuestion(UserData data, Message message, String chatId, Question nextQuestion) throws TelegramApiException {
+        if (createReply(data, message.getChatId().toString(), nextQuestion)) {
+            cache.updateByChatId(chatId, data.currentQuestion(nextQuestion));
         } else {
-            userState.put(chatId, null);
             String uuid = UUID.randomUUID().toString();
             requestRepo.save(Request.builder()
                     .uuid(uuid)
                     .chatId(chatId)
                     .clientId(message.getFrom().getId().toString())
                     .creationTime(LocalDateTime.now())
-                    .data(userData.get(chatId).toString())
+                    .data(data.data().toString())
                     .status(true)
                     .build());
-            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + userData.get(chatId));
+            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());//userData.get(chatId)
+            cache.deleteByChatId(chatId);
         }
     }
 
-    private boolean handleLanguage(Message message, String chatId) throws TelegramApiException {
-        if (userLang.get(chatId) == null) {
+    private UserData handleLanguage(UserData data, Message message, String chatId) throws TelegramApiException {
+        if (data.userLang() == null) {
             try {
-                userLang.put(chatId, Locale.valueOf(message.getText()));
+                data.userLang(Locale.valueOf(message.getText()));
+                return data;
             } catch (Exception e) {
                 createErrorMessage(new IllegalOptionException(), chatId);
-                return true;
+                return data;
             }
         }
-        return false;
+        return data;
     }
 
-    /*    private void handleCallback(CallbackQuery query) {
-        System.out.println(query.getData());
-    }*/
-
     private void createErrorMessage(CustomException exception, String chatId) throws TelegramApiException {
+        Locale text = cache.findByChatId(chatId) != null ? cache.findByChatId(chatId).userLang() : null;
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
-                .text(exception.getText(userLang.get(chatId)))
+                .text(exception.getText(text))
                 .build();
         execute(message);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void sendCustomMessage(String chatId, String myMessage) throws TelegramApiException {
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
@@ -170,29 +157,29 @@ public class TourBot extends TelegramWebhookBot {
         execute(message);
     }
 
-    private boolean createReply(String chatId, Question question) throws TelegramApiException {
+    private boolean createReply(UserData data, String chatId, Question question) throws TelegramApiException {
         boolean result = true;
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
-                .text(question.getText(userLang.get(chatId)))
+                .text(question.getText(data.userLang()))
                 .build();
         List<Action> actions = actionRepo.findAllByBaseQuestionOrderById(question);
         if (actions.size() == 0) {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.size() != 1) {
-            message.setReplyMarkup(createKeyboard(chatId, actions));
+            message.setReplyMarkup(createKeyboard(data, actions));
         }
         execute(message);
         return result;
     }
 
-    private ReplyKeyboardMarkup createKeyboard(String chatId, List<Action> actions) {
+    private ReplyKeyboardMarkup createKeyboard(UserData data, List<Action> actions) {
         ReplyKeyboardMarkup kb = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         for (int i = 0; i < actions.size(); i++) {
-            String buttonText = actions.get(i).getText(userLang.get(chatId));
+            String buttonText = actions.get(i).getText(data.userLang());
             row.add(buttonText);
             if ((i + 1) % 3 == 0 || i + 1 == actions.size()) {
                 keyboard.add(row);
@@ -203,25 +190,6 @@ public class TourBot extends TelegramWebhookBot {
         kb.setOneTimeKeyboard(true);
         return kb;
     }
-
-    /*    private InlineKeyboardMarkup createKeyboard(List<Action> actions) {
-        InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-        List<InlineKeyboardButton> sub = new ArrayList<>();
-        for (int i = 0; i < actions.size(); i++) {
-            String buttonText = actions.get(i).getText();
-            sub.add(InlineKeyboardButton.builder()
-                        .callbackData(buttonText)
-                        .text(buttonText)
-                        .build());
-            if (i + 1 % 3 == 0 || i + 1 == actions.size()) {
-                keyboard.add(sub);
-                sub = new ArrayList<>();
-            }
-        }
-        kb.setKeyboard(keyboard);
-        return kb;
-    }*/
 
     @Override
     public String getBotUsername() {

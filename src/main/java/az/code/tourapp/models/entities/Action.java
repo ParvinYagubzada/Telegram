@@ -1,4 +1,4 @@
-package az.code.tourapp.models;
+package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
@@ -16,7 +17,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Entity
 @Table(name = "actions")
-public class Action {
+public class Action implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

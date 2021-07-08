@@ -1,4 +1,4 @@
-package az.code.tourapp.models;
+package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.IllegalOptionException;
@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -19,7 +20,7 @@ import java.util.regex.Pattern;
 @AllArgsConstructor
 @Entity
 @Table(name = "questions")
-public class Question {
+public class Question implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

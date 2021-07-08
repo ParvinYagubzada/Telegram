@@ -1,7 +1,7 @@
 package az.code.tourapp.repositories;
 
-import az.code.tourapp.models.Action;
-import az.code.tourapp.models.Question;
+import az.code.tourapp.models.entities.Action;
+import az.code.tourapp.models.entities.Question;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
