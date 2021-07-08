@@ -11,5 +11,4 @@ public interface RedisRepository {
     void updateByChatId(String chatId, UserData data);
 
     void saveByChatId(String chatId, UserData data);
-
 }

@@ -41,7 +41,7 @@ public class BotConfig {
 
     @Bean
     WebhookBot getBot() {
-        TourBot bot = new TourBot(questionRepo, actionRepo, requestRepo, redisRepo, username, baseUrl, apiUrl, token);
+        TourBot bot = new TourBot(questionRepo, actionRepo, requestRepo, redisRepo, token, username, baseUrl, apiUrl);
         try {
             bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
             bot.getCommands().put(new Command("stop", "Stops bot current interrogation."), bot::stop);

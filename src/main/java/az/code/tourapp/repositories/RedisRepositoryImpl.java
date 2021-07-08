@@ -12,7 +12,7 @@ import javax.annotation.PostConstruct;
 @RequiredArgsConstructor
 public class RedisRepositoryImpl implements RedisRepository{
 
-    private static final String REDIS_ENTITY = "address";
+    private static final String REDIS_ENTITY = "userdata";
 
     private final RedisTemplate<String, UserData> template;
 
