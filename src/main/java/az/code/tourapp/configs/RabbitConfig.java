@@ -84,7 +84,7 @@ public class RabbitConfig {
     }
 
     @Bean
-    public ConnectionFactory connectionFactory() throws URISyntaxException {
+    public ConnectionFactory amqpConnectionFactory() throws URISyntaxException {
         CachingConnectionFactory factory = new CachingConnectionFactory();
         String envRedisUrl = System.getenv("CLOUDAMQP_URL");
         URI redisUri = new URI(envRedisUrl);

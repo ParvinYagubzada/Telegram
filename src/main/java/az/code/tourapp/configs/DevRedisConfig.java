@@ -19,7 +19,7 @@ import java.net.URISyntaxException;
 public class DevRedisConfig {
 
     @Bean
-    public JedisConnectionFactory connectionFactory() throws URISyntaxException {
+    public JedisConnectionFactory jedisConnectionFactory() {
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
         configuration.setHostName("localhost");
         configuration.setPort(6379);
@@ -27,9 +27,9 @@ public class DevRedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, UserData> redisTemplate() throws URISyntaxException {
+    public RedisTemplate<String, UserData> redisTemplate(JedisConnectionFactory factory) {
         RedisTemplate<String, UserData> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory());
+        template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new JdkSerializationRedisSerializer());
