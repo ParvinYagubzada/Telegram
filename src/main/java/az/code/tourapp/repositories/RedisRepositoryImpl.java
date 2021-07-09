@@ -11,7 +11,7 @@ import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
-public class RedisRepositoryImpl implements RedisRepository{
+public class RedisRepositoryImpl implements RedisRepository {
 
     private static final String REDIS_ENTITY = "userdata";
 

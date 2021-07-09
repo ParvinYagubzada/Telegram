@@ -9,13 +9,13 @@ import java.util.List;
 
 public interface OfferRepository extends JpaRepository<Offer, Long> {
 
+    Integer countAllByChatIdAndBaseMessageIdIsNull(String chatId);
+
     @Query("SELECT offer FROM Offer offer " +
             "WHERE offer.chatId = :chatId " +
             "AND offer.baseMessageId IS null " +
             "ORDER BY offer.timeStamp ASC ")
     List<Offer> findTop5(String chatId, Pageable pageable);
-
-    Integer countAllByChatIdAndBaseMessageIdIsNull(String chatId);
 
     @Query("SELECT offer FROM Offer offer " +
             "WHERE offer.chatId = :chatId " +

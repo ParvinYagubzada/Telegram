@@ -3,12 +3,12 @@ package az.code.tourapp.exceptions;
 import az.code.tourapp.enums.Locale;
 
 @SuppressWarnings("ALL")
-public class IllegalOptionException extends RuntimeException implements CustomException{
+public class IllegalOptionException extends RuntimeException implements CustomException {
 
     //TODO: Add translations.
     String text = "You can not select or type option other than provided.";
     String text_az = "Verilən seçimlərdən kənar seçim seçmək olmaz.";
-    String text_ru = "nüll";
+    String text_ru = "Вы не можете выбрать или ввести другой вариант, кроме предоставленного.";
 
     @Override
     public String getText(Locale locale) {

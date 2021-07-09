@@ -1,19 +1,12 @@
 package az.code.tourapp.services;
 
 import az.code.tourapp.bots.TourBot;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.generics.WebhookBot;
-
-import java.io.IOException;
 
 @Service
-public class WebhookServiceImpl implements WebhookService{
+public class WebhookServiceImpl implements WebhookService {
 
     private final TourBot bot;
 
