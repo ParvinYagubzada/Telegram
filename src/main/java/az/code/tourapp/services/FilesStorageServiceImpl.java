@@ -8,6 +8,7 @@ import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +33,16 @@ public class FilesStorageServiceImpl implements FilesStorageService {
     public void save(MultipartFile file, String fileName) {
         try {
             Files.copy(file.getInputStream(), this.root.resolve(fileName));
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void save(InputStream file, String fileName) {
+        try {
+            Files.copy(file, this.root.resolve(fileName));
         } catch (Exception e) {
             System.out.println(e.getMessage());
             throw new RuntimeException("Could not store the file. Error: " + e.getMessage());

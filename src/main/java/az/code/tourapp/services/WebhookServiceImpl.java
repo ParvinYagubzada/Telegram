@@ -26,8 +26,8 @@ public class WebhookServiceImpl implements WebhookService{
         return bot.onWebhookUpdateReceived(update);
     }
 
-    @Override
-    public ResponseEntity<Boolean> sendResponse(String uuid, MultipartFile file) throws TelegramApiException, IOException {
-        return new ResponseEntity<>(bot.sendResponse(uuid, file), HttpStatus.OK);
-    }
+//    @Override
+//    public ResponseEntity<Boolean> sendResponse(String uuid, MultipartFile file) throws TelegramApiException, IOException {
+//        return new ResponseEntity<>(bot.sendResponse(uuid, file), HttpStatus.OK);
+//    }
 }

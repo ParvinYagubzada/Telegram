@@ -33,8 +33,8 @@ public class WebhookController {
         return service.onWebhookUpdateReceived(update);
     }
 
-    @PostMapping("/sendResponse")
-    public ResponseEntity<Boolean> sendResponse(@RequestParam String uuid, @RequestBody MultipartFile file) throws TelegramApiException, IOException {
-        return service.sendResponse(uuid, file);
-    }
+//    @PostMapping("/sendResponse")
+//    public ResponseEntity<Boolean> sendResponse(@RequestParam String uuid, @RequestBody MultipartFile file) throws TelegramApiException, IOException {
+//        return service.sendResponse(uuid, file);
+//    }
 }

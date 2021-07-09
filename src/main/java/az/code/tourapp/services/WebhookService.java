@@ -11,5 +11,5 @@ import java.io.IOException;
 public interface WebhookService {
     BotApiMethod<?> onWebhookUpdateReceived(Update update);
 
-    ResponseEntity<Boolean> sendResponse(String uuid, MultipartFile file) throws TelegramApiException, IOException;
+//    ResponseEntity<Boolean> sendResponse(String uuid, MultipartFile file) throws TelegramApiException, IOException;
 }
