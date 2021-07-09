@@ -23,7 +23,7 @@ public class BotConfig {
     private final QuestionRepository questionRepo;
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
-    private final OfferRepository offerRepository;
+    private final OfferRepository offerRepo;
     private final RedisRepository redisRepo;
 
     @Value("${telegram.bot.token}")
@@ -37,7 +37,7 @@ public class BotConfig {
 
     @Bean
     TourBot getBot() {
-        TourBot bot = new TourBot(store, template, questionRepo, actionRepo, requestRepo, offerRepository, redisRepo, token, username, baseUrl, apiUrl);
+        TourBot bot = new TourBot(store, template, questionRepo, actionRepo, requestRepo, offerRepo, redisRepo, token, username, baseUrl, apiUrl);
         try {
             bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
             bot.getCommands().put(new Command("stop", "Stops bot current interrogation."), bot::stop);

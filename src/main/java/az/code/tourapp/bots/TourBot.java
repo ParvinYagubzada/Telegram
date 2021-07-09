@@ -4,7 +4,10 @@ import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
-import az.code.tourapp.models.*;
+import az.code.tourapp.models.Command;
+import az.code.tourapp.models.CustomMessage;
+import az.code.tourapp.models.RawOffer;
+import az.code.tourapp.models.UserData;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.models.entities.Offer;
 import az.code.tourapp.models.entities.Question;
@@ -34,6 +37,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -42,7 +46,6 @@ import java.util.function.Consumer;
 public class TourBot extends TelegramWebhookBot {
 
     public static final String OFFER_QUEUE = "offerQueue";
-    public static final String REQUEST_QUEUE = "requestQueue";
 
     private final FilesStorageService store;
     private final RabbitTemplate rabbit;
@@ -63,8 +66,10 @@ public class TourBot extends TelegramWebhookBot {
     private final Map<String, Integer> loadMoreMessages = new HashMap<>();
     private final Map<String, CustomMessage> messages = new HashMap<>();
 
+    @SuppressWarnings("SpellCheckingInspection")
     @PostConstruct
     private void init() {
+        cache.setExpire(Duration.ofDays(1));
         messages.put("loadMore", CustomMessage.builder()
                 .context("Load more.")
                 .context_az("Daha çox yüklə.")
@@ -119,6 +124,10 @@ public class TourBot extends TelegramWebhookBot {
         } else {
             cache.deleteByChatId(chatId);
             userOffers.remove(chatId);
+            String uuid = requestRepo.findUuidByChatId(chatId);
+            if (uuid != null) {
+                rabbit.convertAndSend(RabbitConfig.STOP_EXCHANGE, RabbitConfig.STOP_KEY, uuid);
+            }
             requestRepo.deactivate(chatId);
             sendCustomMessage(chatId, "Your request cancelled!");
         }
@@ -128,7 +137,9 @@ public class TourBot extends TelegramWebhookBot {
     public void receiveResponse(RawOffer offer) throws TelegramApiException {
         String uuid = offer.getUuid();
         String fileName = UUID.randomUUID().toString();
-        Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElseThrow(NoSuchRequestException::new);
+        Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElse(null);
+        if (request == null)
+            return;
         String chatId = request.getChatId();
         store.save(new ByteArrayInputStream(offer.getData()), fileName);
         if (!userOffers.containsKey(chatId) || userOffers.get(chatId) < 5) {
@@ -222,11 +233,11 @@ public class TourBot extends TelegramWebhookBot {
     private void handleMessage(Message message) throws TelegramApiException {
         String chatId = message.getChatId().toString();
         UserData data = cache.findByChatId(chatId);
-        Question currentQuestion = data.currentQuestion();
-        if (currentQuestion == null) {
+        if (data == null || data.currentQuestion() == null) {
             createErrorMessage(new NoSuchSessionException(), chatId);
             return;
         }
+        Question currentQuestion = data.currentQuestion();
         if ((data = handleLanguage(data, message, chatId)).userLang() == null) return;
         if (data.data() == null)
             data.data(new HashMap<>());
@@ -254,7 +265,7 @@ public class TourBot extends TelegramWebhookBot {
                     .build());
             System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());
             data.data().put("uuid", uuid);
-            rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.KEY, data.data());
+            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, data.data());
             cache.deleteByChatId(chatId);
         }
     }
