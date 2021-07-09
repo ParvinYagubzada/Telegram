@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Profile;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+@Profile("!dev")
 @Configuration
 public class RabbitConfig {
 
