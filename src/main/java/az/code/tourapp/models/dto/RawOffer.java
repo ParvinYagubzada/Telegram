@@ -1,4 +1,4 @@
-package az.code.tourapp.models;
+package az.code.tourapp.models.dto;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;

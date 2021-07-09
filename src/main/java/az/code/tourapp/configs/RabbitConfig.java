@@ -20,6 +20,10 @@ public class RabbitConfig {
     public static final String STOP_EXCHANGE = "stopExchange";
     public static final String STOP_KEY = "stopKey";
 
+    public static final String ACCEPTED_QUEUE = "acceptQueue";
+    public static final String ACCEPTED_EXCHANGE = "acceptExchange";
+    public static final String ACCEPTED_KEY = "acceptKey";
+
     @Bean(name = REQUEST_QUEUE)
     public Queue queueRequest() {
         return new Queue(REQUEST_QUEUE);
@@ -28,6 +32,11 @@ public class RabbitConfig {
     @Bean(name = STOP_QUEUE)
     public Queue queueStop() {
         return new Queue(STOP_QUEUE);
+    }
+
+    @Bean(name = ACCEPTED_QUEUE)
+    public Queue queueAccept() {
+        return new Queue(ACCEPTED_QUEUE);
     }
 
     @Bean(name = REQUEST_EXCHANGE)
@@ -40,6 +49,11 @@ public class RabbitConfig {
         return new TopicExchange(STOP_EXCHANGE);
     }
 
+    @Bean(name = ACCEPTED_EXCHANGE)
+    public TopicExchange exchangeAccept() {
+        return new TopicExchange(ACCEPTED_EXCHANGE);
+    }
+
     @Bean
     public Binding bindingRequest(@Qualifier(REQUEST_QUEUE) Queue queue,
                                   @Qualifier(REQUEST_EXCHANGE) TopicExchange exchange) {
@@ -50,6 +64,12 @@ public class RabbitConfig {
     public Binding bindingStop(@Qualifier(STOP_QUEUE) Queue queue,
                            @Qualifier(STOP_EXCHANGE) TopicExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(STOP_KEY);
+    }
+
+    @Bean
+    public Binding bindingAccept(@Qualifier(ACCEPTED_QUEUE) Queue queue,
+                               @Qualifier(ACCEPTED_EXCHANGE) TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(ACCEPTED_KEY);
     }
 
     @Bean
