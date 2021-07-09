@@ -1,11 +1,9 @@
 package az.code.tourapp.models.entities;
 
+import az.code.tourapp.enums.Locale;
 import lombok.*;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Getter
@@ -22,8 +20,10 @@ public class Request {
     private String chatId;
     @Column(name = "client_id")
     private String clientId;
-    private Boolean status;
+    @Enumerated(EnumType.STRING)
+    private Locale lang;
     private String data;
+    private Boolean status;
     @Column(name = "creation_time")
     private LocalDateTime creationTime;
 }

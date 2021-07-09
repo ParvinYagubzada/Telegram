@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
+import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
@@ -41,5 +42,10 @@ public class RedisRepositoryImpl implements RedisRepository{
     @Override
     public void saveByChatId(String chatId, UserData data) {
         hashOperations.put(REDIS_ENTITY, chatId, data);
+    }
+
+    @Override
+    public void setExpire(Duration timeout) {
+        template.expire(REDIS_ENTITY, timeout);
     }
 }
