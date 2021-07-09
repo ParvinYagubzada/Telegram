@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @Entity
 @Table(name = "offers")
 public class Offer {
@@ -18,8 +18,11 @@ public class Offer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String chatId;
+    String baseMessageId;
+    String messageId;
     String uuid;
     String photoUrl;
+    String agencyName;
     @CreationTimestamp
     LocalDateTime timeStamp;
 }

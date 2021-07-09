@@ -10,5 +10,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RawOffer {
     String uuid;
+    String agencyName;
     byte[] data;
 }

@@ -18,20 +18,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.PageRequest;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -41,6 +40,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class TourBot extends TelegramWebhookBot {
@@ -62,9 +62,10 @@ public class TourBot extends TelegramWebhookBot {
     private final String apiUrl;
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
+    private final Map<String, CustomMessage> messages = new HashMap<>();
+
     private final Map<String, Integer> userOffers = new HashMap<>();
     private final Map<String, Integer> loadMoreMessages = new HashMap<>();
-    private final Map<String, CustomMessage> messages = new HashMap<>();
 
     @SuppressWarnings("SpellCheckingInspection")
     @PostConstruct
@@ -80,6 +81,16 @@ public class TourBot extends TelegramWebhookBot {
                 .context_az("Sizin daha %d təklifiniz var.")
                 .context_ru("%d tercumeciye ehtiyac var.")
                 .build());
+        messages.put("acceptOffer", CustomMessage.builder()
+                .context("Yes, send my contact info.")
+                .context_az("Bəli, şəxsi məlumatlarım yollanılsın.")
+                .context_ru("Tercumeye ehtiyac var.")
+                .build());
+        messages.put("acceptOfferMessage", CustomMessage.builder()
+                .context("Do you want to accept %s's offer?")
+                .context_az("%s agentliyinin təklifini qəbul etmək istəyirsinizmi?")
+                .context_ru("%s tercumeye ehtiyac var.")
+                .build());
     }
 
     @SneakyThrows
@@ -88,19 +99,70 @@ public class TourBot extends TelegramWebhookBot {
         if (update.hasCallbackQuery()) {
             handleCallbackQuery(update.getCallbackQuery());
         }
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            String msg = update.getMessage().getText();
-            if (msg.startsWith("/")) {
-                msg = msg.substring(1);
-                Consumer<Update> action;
-                if ((action = commands.get(new Command(msg))) != null) {
-                    action.accept(update);
+        if (update.hasMessage()) {
+            if (update.getMessage().hasText()) {
+                String msg = update.getMessage().getText();
+                if (msg.startsWith("/")) {
+                    msg = msg.substring(1);
+                    Consumer<Update> action;
+                    if ((action = commands.get(new Command(msg))) != null) {
+                        action.accept(update);
+                    }
+                } else {
+                    Message message = update.getMessage();
+                    if (message.getReplyToMessage() != null && message.getReplyToMessage().hasPhoto()) {
+                        handleReplyMessage(message.getReplyToMessage());
+                    } else {
+                        handleMessage(update.getMessage());
+                    }
                 }
             } else {
-                handleMessage(update.getMessage());
+                Message message = update.getMessage();
+                handleContact(message.getReplyToMessage(), message.getContact());
             }
         }
         return null;
+    }
+
+    private void handleContact(Message message, Contact contact) {
+        System.out.println(message);
+        System.out.println(contact);
+        System.out.println(offerRepository.getByMessageId(message.getChatId().toString(),
+                message.getMessageId().toString()).getAgencyName());
+    }
+
+    private void handleReplyMessage(Message replyToMessage) throws TelegramApiException {
+        String chatId = replyToMessage.getChatId().toString();
+        String messageId = replyToMessage.getMessageId().toString();
+        Offer offer = offerRepository.getByMessageId(chatId, messageId);
+        Request request = requestRepo.findByUuid(offer.getUuid());
+        SendMessage message = createRequestContactMessage(chatId, messageId, offer, request);
+        offerRepository.save(offer.toBuilder()
+                .messageId(execute(message).getMessageId().toString())
+                .build());
+    }
+
+    private SendMessage createRequestContactMessage(String chatId, String messageId, Offer offer, Request request) {
+        return SendMessage.builder()
+                .chatId(chatId)
+                .replyToMessageId(Integer.parseInt(messageId))
+                .text(String.format(messages.get("acceptOfferMessage").getText(request.getLang()),
+                        offer.getAgencyName()))
+                .replyMarkup(createRequestContactKeyboard(request))
+                .build();
+    }
+
+    private ReplyKeyboardMarkup createRequestContactKeyboard(Request request) {
+        KeyboardRow row = new KeyboardRow();
+        row.add(KeyboardButton.builder()
+                .requestContact(true)
+                .text(messages.get("acceptOffer").getText(request.getLang()))
+                .build());
+        return ReplyKeyboardMarkup.builder()
+                .keyboardRow(row)
+                .resizeKeyboard(true)
+                .oneTimeKeyboard(true)
+                .build();
     }
 
     @SneakyThrows
@@ -142,23 +204,30 @@ public class TourBot extends TelegramWebhookBot {
             return;
         String chatId = request.getChatId();
         store.save(new ByteArrayInputStream(offer.getData()), fileName);
+        Offer newOffer = Offer.builder()
+                .uuid(uuid)
+                .chatId(chatId)
+                .photoUrl(fileName)
+                .agencyName(offer.getAgencyName()).build();
         if (!userOffers.containsKey(chatId) || userOffers.get(chatId) < 5) {
             Integer value = userOffers.get(chatId) != null ? userOffers.get(chatId) + 1 : 1;
             userOffers.put(chatId, value);
-            sendOfferPhoto(fileName, chatId);
+            newOffer.setBaseMessageId(sendOfferPhoto(fileName, chatId, offer.getAgencyName()));
+            offerRepository.save(newOffer);
             store.delete(fileName);
         } else {
-            offerRepository.save(Offer.builder().uuid(uuid).chatId(chatId).photoUrl(fileName).build());
-            handleLoadMore(chatId, uuid, request);
+            offerRepository.save(newOffer);
+            handleMoreOffers(chatId, uuid, request);
         }
     }
 
     @SneakyThrows
-    private void sendOfferPhoto(String fileName, String chatId) {
+    private String sendOfferPhoto(String fileName, String chatId, String agencyName) {
         SendPhoto sendPhoto = SendPhoto.builder()
                 .chatId(chatId)
+                .caption(agencyName)
                 .photo(new InputFile(store.load(fileName).getFile())).build();
-        execute(sendPhoto);
+        return execute(sendPhoto).getMessageId().toString();
     }
 
     private Locale extractLocale(String data) {
@@ -168,7 +237,7 @@ public class TourBot extends TelegramWebhookBot {
         return Locale.valueOf(data.substring(start, end));
     }
 
-    private SendMessage loadMore(String chatId, String uuid, Locale locale, Integer count) {
+    private SendMessage createLoadMore(String chatId, String uuid, Locale locale, Integer count) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(String.format(messages.get("loadMoreMessage").getText(locale), count));
@@ -177,7 +246,7 @@ public class TourBot extends TelegramWebhookBot {
         return message;
     }
 
-    private EditMessageText refreshMessage(String chatId, String uuid, Integer messageId, Locale locale, Integer count) {
+    private EditMessageText editLoadMore(String chatId, String uuid, Integer messageId, Locale locale, Integer count) {
         EditMessageText message = new EditMessageText();
         message.setChatId(chatId);
         message.setMessageId(messageId);
@@ -203,28 +272,31 @@ public class TourBot extends TelegramWebhookBot {
     private void handleCallbackQuery(CallbackQuery query) throws TelegramApiException {
         String chatId = query.getMessage().getChatId().toString();
         String uuid = query.getData().split("&")[1];
-        List<Offer> list = offerRepository.findTop5ByChatIdOrderByTimeStampAsc(chatId);
+        List<Offer> list = offerRepository.findTop5(chatId, PageRequest.of(0, 5));
         Request request = requestRepo.findByUuid(uuid);
-        offerRepository.deleteAll(list);
+        offerRepository.saveAll(list.stream()
+                .map(offer -> {
+                    String messageId = sendOfferPhoto(offer.getPhotoUrl(), chatId, offer.getAgencyName());
+                    return offer.toBuilder().baseMessageId(messageId).build();
+                })
+                .collect(Collectors.toList())
+        );
         execute(DeleteMessage.builder()
                 .chatId(chatId)
                 .messageId(loadMoreMessages.get(chatId)).build());
-        list.forEach(offer -> sendOfferPhoto(offer.getPhotoUrl(), chatId));
         store.deleteAll(list);
         loadMoreMessages.remove(chatId);
-        handleLoadMore(chatId, uuid, request);
+        handleMoreOffers(chatId, uuid, request);
     }
 
-    private void handleLoadMore(String chatId, String uuid, Request request) throws TelegramApiException {
-        int count = offerRepository.countAllByChatId(chatId);
+    private void handleMoreOffers(String chatId, String uuid, Request request) throws TelegramApiException {
+        int count = offerRepository.countAllByChatIdAndBaseMessageIdIsNull(chatId);
         if (count != 0) {
             if (!loadMoreMessages.containsKey(chatId)) {
-                loadMoreMessages.put(chatId, execute(loadMore(chatId, uuid, extractLocale(request.getData()),
-                        count)).getMessageId());
+                loadMoreMessages.put(chatId,
+                        execute(createLoadMore(chatId, uuid, request.getLang(), count)).getMessageId());
             } else {
-                execute(refreshMessage(chatId, uuid, loadMoreMessages.get(chatId),
-                        extractLocale(request.getData()),
-                        count));
+                execute(editLoadMore(chatId, uuid, loadMoreMessages.get(chatId), request.getLang(), count));
             }
         }
     }
@@ -255,17 +327,19 @@ public class TourBot extends TelegramWebhookBot {
             cache.updateByChatId(chatId, data.currentQuestion(nextQuestion));
         } else {
             String uuid = UUID.randomUUID().toString();
+            String userData = data.data().toString();
             requestRepo.save(Request.builder()
                     .uuid(uuid)
                     .chatId(chatId)
                     .clientId(message.getFrom().getId().toString())
                     .creationTime(LocalDateTime.now())
                     .data(data.data().toString())
+                    .lang(extractLocale(userData))
                     .status(true)
                     .build());
-            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());
+            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + userData);
             data.data().put("uuid", uuid);
-            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, data.data());
+            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, userData);
             cache.deleteByChatId(chatId);
         }
     }
