@@ -1,12 +1,10 @@
 package az.code.tourapp.bots;
 
+import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
-import az.code.tourapp.models.Command;
-import az.code.tourapp.models.CustomMessage;
-import az.code.tourapp.models.RawOffer;
-import az.code.tourapp.models.UserData;
+import az.code.tourapp.models.*;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.models.entities.Offer;
 import az.code.tourapp.models.entities.Question;
@@ -16,6 +14,7 @@ import az.code.tourapp.services.FilesStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -42,8 +41,11 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class TourBot extends TelegramWebhookBot {
 
-    public static final String QUEUE = "telegramQueue";
+    public static final String OFFER_QUEUE = "offerQueue";
+    public static final String REQUEST_QUEUE = "requestQueue";
+
     private final FilesStorageService store;
+    private final RabbitTemplate rabbit;
 
     private final QuestionRepository questionRepo;
     private final ActionRepository actionRepo;
@@ -122,15 +124,9 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
-//    @RabbitListener(queues = QUEUE)
-//    public void rec(String data) {
-//        System.out.println(data);
-//    }
-
-    @RabbitListener(queues = QUEUE)
-    public boolean receiveResponse(RawOffer offer) throws TelegramApiException {
+    @RabbitListener(queues = OFFER_QUEUE)
+    public void receiveResponse(RawOffer offer) throws TelegramApiException {
         String uuid = offer.getUuid();
-        System.out.println(uuid);
         String fileName = UUID.randomUUID().toString();
         Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElseThrow(NoSuchRequestException::new);
         String chatId = request.getChatId();
@@ -144,25 +140,7 @@ public class TourBot extends TelegramWebhookBot {
             offerRepository.save(Offer.builder().uuid(uuid).chatId(chatId).photoUrl(fileName).build());
             handleLoadMore(chatId, uuid, request);
         }
-        return true;
     }
-
-//    public boolean sendResponse(String uuid, MultipartFile file) throws TelegramApiException {
-//        String fileName = UUID.randomUUID().toString();
-//        Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElseThrow(NoSuchRequestException::new);
-//        String chatId = request.getChatId();
-//        store.save(file, fileName);
-//        if (!userOffers.containsKey(chatId) || userOffers.get(chatId) < 5) {
-//            Integer value = userOffers.get(chatId) != null ? userOffers.get(chatId) + 1 : 1;
-//            userOffers.put(chatId, value);
-//            sendOfferPhoto(fileName, chatId);
-//            store.delete(fileName);
-//        } else {
-//            offerRepository.save(Offer.builder().uuid(uuid).chatId(chatId).photoUrl(fileName).build());
-//            handleLoadMore(chatId, uuid, request);
-//        }
-//        return true;
-//    }
 
     @SneakyThrows
     private void sendOfferPhoto(String fileName, String chatId) {
@@ -275,6 +253,8 @@ public class TourBot extends TelegramWebhookBot {
                     .status(true)
                     .build());
             System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + data.data());
+            data.data().put("uuid", uuid);
+            rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.KEY, data.data());
             cache.deleteByChatId(chatId);
         }
     }
