@@ -1,6 +1,6 @@
 package az.code.tourapp.bots;
 
-import az.code.tourapp.configs.RabbitConfig;
+import az.code.tourapp.configs.DevRabbitConfig;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
@@ -148,7 +148,7 @@ public class TourBot extends TelegramWebhookBot {
             userOffers.remove(chatId);
             String uuid = requestRepo.findUuidByChatId(chatId);
             if (uuid != null) {
-                rabbit.convertAndSend(RabbitConfig.STOP_EXCHANGE, RabbitConfig.STOP_KEY, uuid);
+                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
             }
             requestRepo.deactivate(chatId);
             sendCustomMessage(chatId, "Your request cancelled!");
@@ -225,7 +225,7 @@ public class TourBot extends TelegramWebhookBot {
     private void handleContact(Message message, Contact contact) {
         Offer offer = offerRepository.getByMessageId(message.getChatId().toString(),
                 message.getMessageId().toString());
-        rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
+        rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
                 new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), contact));
     }
 
@@ -346,7 +346,7 @@ public class TourBot extends TelegramWebhookBot {
                     .build());
             System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + userData);
             data.data().put("uuid", uuid);
-            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, userData);
+            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY, userData);
             cache.deleteByChatId(chatId);
         }
     }
