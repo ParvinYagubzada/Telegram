@@ -1,10 +1,10 @@
 package az.code.tourapp.services;
 
 import az.code.tourapp.models.entities.Offer;
+import org.apache.commons.io.FileUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileSystemUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,19 +23,10 @@ public class FilesStorageServiceImpl implements FilesStorageService {
     @Override
     public void init() {
         try {
+            FileUtils.deleteDirectory(root.toFile());
             Files.createDirectory(root);
         } catch (IOException ignored) {
-
-        }
-    }
-
-    @Override
-    public void save(MultipartFile file, String fileName) {
-        try {
-            Files.copy(file.getInputStream(), this.root.resolve(fileName));
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
+            System.out.println("Cant delete or create LINE-29");
         }
     }
 
