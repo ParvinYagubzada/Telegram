@@ -16,11 +16,10 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     Request findByUuid(String uuid);
 
-    @SuppressWarnings("SpringDataRepositoryMethodReturnTypeInspection")
-    @Query("SELECT request.uuid FROM Request request " +
+    @Query("SELECT request FROM Request request " +
             "WHERE request.chatId = :chatId " +
             "AND request.status = true ")
-    String findUuidByChatId(String chatId);
+    Request findUuidByChatId(String chatId);
 
     @Transactional
     @Modifying

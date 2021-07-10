@@ -56,8 +56,8 @@ public class BotConfig {
                 .cache(userDataRepo).lastMessageRepo(lastMessageRepo).offerRepo(offerRepo)
                 .token(token).username(username).baseUrl(baseUrl).apiUrl(apiUrl).build();
         try {
-            bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
             bot.getCommands().put(new Command("stop", "Stops bot current interrogation."), bot::stop);
+            bot.getCommands().put(new Command("start", "Starts bot interrogation!"), bot::interrogate);
             bot.execute(SetWebhook.builder().url(baseUrl + apiUrl).dropPendingUpdates(true).build());
             bot.execute(SetMyCommands.builder()
                     .commands(new ArrayList<>(bot.getCommands().keySet()))

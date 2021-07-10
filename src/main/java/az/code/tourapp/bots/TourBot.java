@@ -84,6 +84,11 @@ public class TourBot extends TelegramWebhookBot {
         cache.setExpire(Duration.ofDays(3));
         lastMessageRepo.setExpire(Duration.ofDays(14));
         offerCountRepo.setExpire(Duration.ofDays(14));
+        messages.put("stopMessage", CustomMessage.builder()
+                .context("Your active request cancelled!")
+                .context_az("Sizin aktiv sorğunuz dayandırıldı.")
+                .context_ru("Ваш активный запрос отменен!")
+                .build());
         messages.put("loadMore", CustomMessage.builder()
                 .context("Load more.")
                 .context_az("Daha çox yüklə.")
@@ -157,12 +162,14 @@ public class TourBot extends TelegramWebhookBot {
             sendErrorMessage(new NoSuchSessionException(), chatId);
         } else {
             cache.deleteByChatId(chatId);
-            String uuid = requestRepo.findUuidByChatId(chatId);//TODO: offerCountRepo.deleteOfferCountByChatId(chatId);
-            if (uuid != null) {
-                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
+            Request request = requestRepo.findUuidByChatId(chatId);
+            Locale locale = null;
+            if (request != null) {
+                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, request.getUuid());
+                locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
-            sendCustomMessage(chatId, "Your request cancelled!");
+            sendCustomMessage(chatId, messages.get("stopMessage").getText(locale));
         }
     }
 
@@ -308,6 +315,9 @@ public class TourBot extends TelegramWebhookBot {
                 execute(editLoadMore(chatId, uuid, lastMessageRepo.findLastMessageId(chatId, uuid),
                         request.getLang(), count));
             }
+        } if (count == 0 && !request.getStatus()) {
+            lastMessageRepo.deleteLastMessageId(chatId, uuid);
+            offerCountRepo.deleteOfferCount(chatId, uuid);
         }
     }
 
@@ -385,20 +395,21 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private ReplyKeyboardMarkup createKeyboard(UserData data, List<Action> actions) {
-        ReplyKeyboardMarkup kb = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         for (int i = 0; i < actions.size(); i++) {
             String buttonText = actions.get(i).getText(data.userLang());
             row.add(buttonText);
-            if ((i + 1) % 3 == 0 || i + 1 == actions.size()) {
+            if ((i + 1) % 2 == 0 || i + 1 == actions.size()) {
                 keyboard.add(row);
                 row = new KeyboardRow();
             }
         }
-        kb.setKeyboard(keyboard);
-        kb.setOneTimeKeyboard(true);
-        return kb;
+        return ReplyKeyboardMarkup.builder()
+                .keyboard(keyboard)
+                .oneTimeKeyboard(true)
+                .resizeKeyboard(true)
+                .build();
     }
 
     private void sendErrorMessage(CustomException exception, String chatId) throws TelegramApiException {
@@ -410,7 +421,6 @@ public class TourBot extends TelegramWebhookBot {
         execute(message);
     }
 
-    @SuppressWarnings("SameParameterValue")
     private void sendCustomMessage(String chatId, String myMessage) throws TelegramApiException {
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
