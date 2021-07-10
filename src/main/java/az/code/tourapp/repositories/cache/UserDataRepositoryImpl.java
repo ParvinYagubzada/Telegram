@@ -1,4 +1,4 @@
-package az.code.tourapp.repositories;
+package az.code.tourapp.repositories.cache;
 
 import az.code.tourapp.models.UserData;
 import lombok.RequiredArgsConstructor;
@@ -11,9 +11,9 @@ import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
-public class RedisRepositoryImpl implements RedisRepository {
+public class UserDataRepositoryImpl implements UserDataRepository {
 
-    private static final String REDIS_ENTITY = "userdata";
+    private static final String KEY = "userdata";
 
     private final RedisTemplate<String, UserData> template;
 
@@ -26,26 +26,21 @@ public class RedisRepositoryImpl implements RedisRepository {
 
     @Override
     public UserData findByChatId(String chatId) {
-        return hashOperations.get(REDIS_ENTITY, chatId);
+        return hashOperations.get(KEY, chatId);
     }
 
     @Override
     public void deleteByChatId(String chatId) {
-        hashOperations.delete(REDIS_ENTITY, chatId);
-    }
-
-    @Override
-    public void updateByChatId(String chatId, UserData data) {
-        hashOperations.put(REDIS_ENTITY, chatId, data);
+        hashOperations.delete(KEY, chatId);
     }
 
     @Override
     public void saveByChatId(String chatId, UserData data) {
-        hashOperations.put(REDIS_ENTITY, chatId, data);
+        hashOperations.put(KEY, chatId, data);
     }
 
     @Override
     public void setExpire(Duration timeout) {
-        template.expire(REDIS_ENTITY, timeout);
+        template.expire(KEY, timeout);
     }
 }

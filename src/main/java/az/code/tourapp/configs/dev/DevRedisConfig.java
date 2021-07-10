@@ -1,4 +1,4 @@
-package az.code.tourapp.configs;
+package az.code.tourapp.configs.dev;
 
 import az.code.tourapp.models.UserData;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.util.Map;
 
 @Profile("dev")
 @Configuration
@@ -27,6 +29,32 @@ public class DevRedisConfig {
     @Bean
     public RedisTemplate<String, UserData> redisTemplate(JedisConnectionFactory factory) {
         RedisTemplate<String, UserData> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new JdkSerializationRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setEnableTransactionSupport(true);
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, Map<String, Integer>> userOfferTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new JdkSerializationRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setEnableTransactionSupport(true);
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, Map<String, Integer>> lastMessageTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());

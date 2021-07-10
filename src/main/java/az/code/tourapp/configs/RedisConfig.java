@@ -61,4 +61,30 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
+
+    @Bean
+    public RedisTemplate<String, Integer> userOfferTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Integer> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new JdkSerializationRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setEnableTransactionSupport(true);
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public RedisTemplate<String, Integer> lastMessageTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Integer> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new JdkSerializationRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setEnableTransactionSupport(true);
+        template.afterPropertiesSet();
+        return template;
+    }
 }
