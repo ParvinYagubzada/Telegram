@@ -1,4 +1,4 @@
-package az.code.tourapp.configs;
+package az.code.tourapp.configs.dev;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;

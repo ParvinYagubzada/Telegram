@@ -1,10 +1,10 @@
 package az.code.tourapp.controllers;
 
-import az.code.tourapp.exceptions.NoSuchRequestException;
 import az.code.tourapp.services.WebhookService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -16,11 +16,6 @@ public class WebhookController {
 
     public WebhookController(WebhookService service) {
         this.service = service;
-    }
-
-    @ExceptionHandler(NoSuchRequestException.class)
-    private ResponseEntity<String> handleRequestException(NoSuchRequestException exception) {
-        return new ResponseEntity<>(exception.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @PostMapping

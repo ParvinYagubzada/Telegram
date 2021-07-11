@@ -27,7 +27,6 @@ public class Question implements Serializable {
     private String context;
     private String context_az;
     private String context_ru;
-    @Column(name = "field_name")
     private String fieldName;
     @OneToMany(mappedBy = "baseQuestion", fetch = FetchType.EAGER)
     private List<Action> actions;

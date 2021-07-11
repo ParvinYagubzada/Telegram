@@ -3,12 +3,11 @@ package az.code.tourapp.exceptions;
 import az.code.tourapp.enums.Locale;
 
 @SuppressWarnings("ALL")
-public class InputMismatchException extends RuntimeException implements CustomException{
+public class InputMismatchException extends RuntimeException implements CustomException {
 
-    //TODO: Add translations.
     String text = "You answer does not meet typing requirements.";
     String text_az = "Sizin cavabınızın yazılış forması düzgün deyil.";
-    String text_ru = "nüll";
+    String text_ru = "Ваш ответ не соответствует требованиям к вводу текста.";
 
     @Override
     public String getText(Locale locale) {

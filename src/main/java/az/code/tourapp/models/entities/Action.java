@@ -48,12 +48,6 @@ public class Action implements Serializable {
         return Objects.hash(text);
     }
 
-    public static Action of(String text) {
-        Action action = new Action();
-        action.setText(text);
-        return action;
-    }
-
     public String getText(Locale locale) {
         if (locale == null) return this.text_az;
         return switch (locale) {
