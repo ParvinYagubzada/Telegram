@@ -1,6 +1,7 @@
 package az.code.tourapp.bots;
 
 import az.code.tourapp.configs.dev.DevRabbitConfig;
+import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.InputMismatchException;
 import az.code.tourapp.exceptions.*;
@@ -21,6 +22,7 @@ import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
 import az.code.tourapp.services.FilesStorageService;
+import az.code.tourapp.utils.CalendarUtil;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -32,6 +34,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -44,8 +47,11 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
+import java.io.Serializable;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -55,6 +61,8 @@ import java.util.stream.Collectors;
 public class TourBot extends TelegramWebhookBot {
 
     public static final String OFFER_QUEUE = "offerQueue";
+    public static final String IGNORE = "ignore";
+    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final FilesStorageService store;
     private final RabbitTemplate rabbit;
@@ -131,7 +139,7 @@ public class TourBot extends TelegramWebhookBot {
                     if (message.getReplyToMessage() != null && message.getReplyToMessage().hasPhoto()) {
                         handleReplyMessage(message.getReplyToMessage());
                     } else {
-                        handleMessage(update.getMessage());
+                        handleMessage(message.getChatId().toString(), message.getText(), message.getFrom());
                     }
                 }
             } else {
@@ -283,6 +291,10 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void handleCallbackQuery(CallbackQuery query) throws TelegramApiException {
+        if (!query.getData().startsWith("loadMore")) {
+            handleCalendar(query);
+            return;
+        }
         String chatId = query.getMessage().getChatId().toString();
         String uuid = query.getData().split("&")[1];
         List<Offer> list = offerRepo.findTop5(chatId, uuid, PageRequest.of(0, 5));
@@ -305,6 +317,35 @@ public class TourBot extends TelegramWebhookBot {
         handleMoreOffers(chatId, uuid, request);
     }
 
+    private void handleCalendar(CallbackQuery query) throws TelegramApiException {
+        String chatId = query.getMessage().getChatId().toString();
+        Integer messageId = query.getMessage().getMessageId();
+        String choice = query.getData();
+        if (!choice.equals(IGNORE)) {
+            if (!choice.startsWith("<") && !choice.startsWith(">")) {
+                handleCalendarChoice(chatId, messageId, choice);
+            } else {
+                LocalDate newDate = choice.startsWith("<") ?
+                        LocalDate.parse(choice.substring(1), formatter).minusMonths(1):
+                        LocalDate.parse(choice.substring(1), formatter).plusMonths(1);
+                execute(EditMessageReplyMarkup.builder()
+                        .chatId(chatId)
+                        .messageId(messageId)
+                        .replyMarkup(CalendarUtil.generateKeyboard(newDate))
+                        .build());
+            }
+        }
+    }
+
+    private void handleCalendarChoice(String chatId, Integer messageId, String choice) throws TelegramApiException {
+        execute(EditMessageText.builder()
+                .chatId(chatId)
+                .messageId(messageId)
+                .text(choice)
+                .build());
+        handleMessage(chatId, choice, null);
+    }
+
     private void handleMoreOffers(String chatId, String uuid, Request request) throws TelegramApiException {
         int count = offerRepo.countAllByChatIdAndUuidAndBaseMessageIdIsNull(chatId, uuid);
         if (count != 0) {
@@ -315,37 +356,37 @@ public class TourBot extends TelegramWebhookBot {
                 execute(editLoadMore(chatId, uuid, lastMessageRepo.findLastMessageId(chatId, uuid),
                         request.getLang(), count));
             }
-        } if (count == 0 && !request.getStatus()) {
+        }
+        if (count == 0 && !request.getStatus()) {
             lastMessageRepo.deleteLastMessageId(chatId, uuid);
             offerCountRepo.deleteOfferCount(chatId, uuid);
         }
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void handleMessage(Message message) throws TelegramApiException {
-        String chatId = message.getChatId().toString();
+    private void handleMessage(String chatId, String text, User user) throws TelegramApiException {
         UserData data = cache.findByChatId(chatId);
         if (data == null || data.currentQuestion() == null) {
             sendErrorMessage(new NoSuchSessionException(), chatId);
             return;
         }
         Question currentQuestion = data.currentQuestion();
-        if ((data = handleLanguage(data, message, chatId)).userLang() == null) return;
+        if ((data = handleLanguage(data, text, chatId)).userLang() == null) return;
         if (data.data() == null)
             data.data(new HashMap<>());
-        data.data().put(currentQuestion.getFieldName(), message.getText());
+        data.data().put(currentQuestion.getFieldName(), text);
         try {
-            Question nextQuestion = currentQuestion.findNext(message.getText(), data.userLang());
-            handleNextQuestion(data, message, chatId, nextQuestion);
+            Question nextQuestion = currentQuestion.findNext(text, data.userLang());
+            handleNextQuestion(data, chatId, user, nextQuestion);
         } catch (IllegalOptionException | InputMismatchException exception) {
             sendErrorMessage(exception, chatId);
         }
     }
 
-    private UserData handleLanguage(UserData data, Message message, String chatId) throws TelegramApiException {
+    private UserData handleLanguage(UserData data, String text, String chatId) throws TelegramApiException {
         if (data.userLang() == null) {
             try {
-                data.userLang(Locale.valueOf(message.getText()));
+                data.userLang(Locale.valueOf(text));
                 return data;
             } catch (Exception e) {
                 sendErrorMessage(new IllegalOptionException(), chatId);
@@ -355,8 +396,8 @@ public class TourBot extends TelegramWebhookBot {
         return data;
     }
 
-    private void handleNextQuestion(UserData data, Message message, String chatId, Question nextQuestion) throws TelegramApiException {
-        if (sendQuestion(data, message.getChatId().toString(), nextQuestion)) {
+    private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException {
+        if (sendQuestion(data, chatId, nextQuestion)) {
             cache.saveByChatId(chatId, data.currentQuestion(nextQuestion));
         } else {
             String uuid = UUID.randomUUID().toString();
@@ -364,13 +405,13 @@ public class TourBot extends TelegramWebhookBot {
             requestRepo.save(Request.builder()
                     .uuid(uuid)
                     .chatId(chatId)
-                    .clientId(message.getFrom().getId().toString())
+                    .clientId(user.getId().toString())
                     .creationTime(LocalDateTime.now())
                     .data(data.data().toString())
                     .lang(extractLocale(userData))
                     .status(true)
                     .build());
-            System.out.println("USER=" + message.getFrom().getFirstName() + " DATA=" + userData);
+            System.out.println("USER=" + user.getFirstName() + " DATA=" + userData);
             data.data().put("uuid", uuid);
             rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY, userData);
             cache.deleteByChatId(chatId);
@@ -387,8 +428,12 @@ public class TourBot extends TelegramWebhookBot {
         if (actions.size() == 0) {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
-        } else if (actions.size() != 1) {
+        } else if (actions.get(0).getType().equals(ActionType.DATE)) {
+            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now()));
+        } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));
+        } else {
+            message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
         }
         execute(message);
         return result;
