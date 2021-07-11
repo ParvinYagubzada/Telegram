@@ -308,11 +308,14 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void handleCalendar(CallbackQuery query) throws TelegramApiException {
-        String chatId = query.getMessage().getChatId().toString();
-        Locale locale = cache.findByChatId(chatId) != null ? cache.findByChatId(chatId).userLang() : null;
-        Integer messageId = query.getMessage().getMessageId();
+        Message message = query.getMessage();
+        String chatId = message.getChatId().toString();
+        UserData cacheData = cache.findByChatId(chatId);
+        Locale locale = cacheData != null ? cacheData.userLang() : null;
+        Integer messageId = message.getMessageId();
         String choice = query.getData();
-        if (locale == null) {
+        if (locale == null || (Objects.requireNonNull(cacheData).currentQuestion() != null
+                && !message.getText().equals(cacheData.currentQuestion().getText(locale)))) {
             deleteMessage(chatId, messageId);
         } else if (!choice.equals(IGNORE)) {
             if (!choice.startsWith("<") && !choice.startsWith(">")) {
