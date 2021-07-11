@@ -1,3 +1,6 @@
+server:
+  port: 7000
+
 spring:
   datasource:
     url: jdbc:postgresql://192.168.0.100:5432/tour
@@ -5,9 +8,32 @@ spring:
     username: postgres
     password: 3262015Aze3262!
     driver-class-name: org.postgresql.Driver
+
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: update
-server:
-  port: 7000
+
+telegram:
+  bot:
+    messages:
+      stopMessage:
+        context: Your active request cancelled!
+        context_az: Sizin aktiv sorğunuz dayandırıldı.
+        context_ru: Ваш активный запрос отменен!
+      loadMore:
+        context: Load more.
+        context_az: Daha çox yüklə.
+        context_ru: Tercumeciye ehtiyac var.
+      loadMoreMessage:
+        context: "You have %d more offers."
+        context_az: "Sizin daha %d təklifiniz var."
+        context_ru: "%d tercumeciye ehtiyac var."
+      acceptOffer:
+        context: Yes, send my contact info.
+        context_az: Bəli, şəxsi məlumatlarım yollanılsın.
+        context_ru: Tercumeye ehtiyac var.
+      acceptOfferMessage:
+        context: "Do you want to accept %s's offer?"
+        context_az: "%s agentliyinin təklifini qəbul etmək istəyirsinizmi?"
+        context_ru: "%s tercumeye ehtiyac var."

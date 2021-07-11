@@ -1,10 +1,9 @@
 package az.code.tourapp.models;
 
 import az.code.tourapp.enums.Locale;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

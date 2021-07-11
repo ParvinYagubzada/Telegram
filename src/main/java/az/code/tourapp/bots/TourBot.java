@@ -1,5 +1,6 @@
 package az.code.tourapp.bots;
 
+import az.code.tourapp.configs.TelegramConfiguration;
 import az.code.tourapp.configs.dev.DevRabbitConfig;
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
@@ -25,14 +26,18 @@ import az.code.tourapp.services.FilesStorageService;
 import az.code.tourapp.utils.CalendarUtil;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.data.domain.PageRequest;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -47,7 +52,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
-import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -56,8 +60,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-@Builder
-@RequiredArgsConstructor
 public class TourBot extends TelegramWebhookBot {
 
     public static final String OFFER_QUEUE = "offerQueue";
@@ -80,43 +82,38 @@ public class TourBot extends TelegramWebhookBot {
 
     private final String token;
     private final String username;
-    private final String baseUrl;
-    private final String apiUrl;
+    private final String domain;
+    private final String api;
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
-    private final Map<String, CustomMessage> messages = new HashMap<>();
+    private final Map<String, CustomMessage> messages;
 
-    @SuppressWarnings("SpellCheckingInspection")
+    public TourBot(TelegramConfiguration properties) {
+        store = properties.getStore();
+        rabbit = properties.getTemplate();
+        questionRepo = properties.getQuestionRepo();
+        actionRepo = properties.getActionRepo();
+        requestRepo = properties.getRequestRepo();
+        offerRepo = properties.getOfferRepo();
+        cache = properties.getUserDataRepo();
+        lastMessageRepo = properties.getLastMessageRepo();
+        offerCountRepo = properties.getOfferCountRepo();
+        token = properties.getToken();
+        username = properties.getUsername();
+        domain = properties.getDomain();
+        api = properties.getApi();
+        messages = properties.getMessages();
+    }
+
     @PostConstruct
-    private void init() {
+    private void init() throws TelegramApiException {
+        commands.put(new Command("stop", "Stops bot current interrogation."), this::stop);
+        commands.put(new Command("start", "Starts bot interrogation!"), this::interrogate);
+        execute(SetWebhook.builder().url(domain + api).dropPendingUpdates(true).build());
+        execute(SetMyCommands.builder().commands(new ArrayList<>(commands.keySet())).build());
         cache.setExpire(Duration.ofDays(3));
         lastMessageRepo.setExpire(Duration.ofDays(14));
         offerCountRepo.setExpire(Duration.ofDays(14));
-        messages.put("stopMessage", CustomMessage.builder()
-                .context("Your active request cancelled!")
-                .context_az("Sizin aktiv sorğunuz dayandırıldı.")
-                .context_ru("Ваш активный запрос отменен!")
-                .build());
-        messages.put("loadMore", CustomMessage.builder()
-                .context("Load more.")
-                .context_az("Daha çox yüklə.")
-                .context_ru("Tercumeciye ehtiyac var.")
-                .build());
-        messages.put("loadMoreMessage", CustomMessage.builder()
-                .context("You have %d more offers.")
-                .context_az("Sizin daha %d təklifiniz var.")
-                .context_ru("%d tercumeciye ehtiyac var.")
-                .build());
-        messages.put("acceptOffer", CustomMessage.builder()
-                .context("Yes, send my contact info.")
-                .context_az("Bəli, şəxsi məlumatlarım yollanılsın.")
-                .context_ru("Tercumeye ehtiyac var.")
-                .build());
-        messages.put("acceptOfferMessage", CustomMessage.builder()
-                .context("Do you want to accept %s's offer?")
-                .context_az("%s agentliyinin təklifini qəbul etmək istəyirsinizmi?")
-                .context_ru("%s tercumeye ehtiyac var.")
-                .build());
     }
 
     @SneakyThrows
@@ -494,7 +491,7 @@ public class TourBot extends TelegramWebhookBot {
 
     @Override
     public String getBotPath() {
-        return apiUrl + baseUrl;
+        return api + domain;
     }
 
     public Map<Command, Consumer<Update>> getCommands() {
