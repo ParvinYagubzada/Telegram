@@ -15,6 +15,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 @Profile("!dev")
 @Configuration
@@ -63,8 +64,8 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Integer> userOfferTemplate(JedisConnectionFactory factory) {
-        RedisTemplate<String, Integer> template = new RedisTemplate<>();
+    public RedisTemplate<String, Map<String, Integer>> userOfferTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
@@ -76,8 +77,8 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Integer> lastMessageTemplate(JedisConnectionFactory factory) {
-        RedisTemplate<String, Integer> template = new RedisTemplate<>();
+    public RedisTemplate<String, Map<String, Integer>> lastMessageTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
