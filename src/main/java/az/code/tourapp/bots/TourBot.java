@@ -493,8 +493,4 @@ public class TourBot extends TelegramWebhookBot {
     public String getBotPath() {
         return api + domain;
     }
-
-    public Map<Command, Consumer<Update>> getCommands() {
-        return commands;
-    }
 }
