@@ -24,13 +24,9 @@ import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
 import az.code.tourapp.services.FilesStorageService;
 import az.code.tourapp.utils.CalendarUtil;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.data.domain.PageRequest;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -316,6 +312,7 @@ public class TourBot extends TelegramWebhookBot {
 
     private void handleCalendar(CallbackQuery query) throws TelegramApiException {
         String chatId = query.getMessage().getChatId().toString();
+        Locale locale = cache.findByChatId(chatId).userLang();
         Integer messageId = query.getMessage().getMessageId();
         String choice = query.getData();
         if (!choice.equals(IGNORE)) {
@@ -328,7 +325,7 @@ public class TourBot extends TelegramWebhookBot {
                 execute(EditMessageReplyMarkup.builder()
                         .chatId(chatId)
                         .messageId(messageId)
-                        .replyMarkup(CalendarUtil.generateKeyboard(newDate))
+                        .replyMarkup(CalendarUtil.generateKeyboard(newDate, locale.getJavaLocale()))
                         .build());
             }
         }
@@ -426,7 +423,7 @@ public class TourBot extends TelegramWebhookBot {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.get(0).getType().equals(ActionType.DATE)) {
-            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now()));
+            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now(), data.userLang().getJavaLocale()));
         } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));
         } else {

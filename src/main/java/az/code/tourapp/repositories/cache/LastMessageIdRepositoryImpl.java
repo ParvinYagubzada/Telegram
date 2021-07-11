@@ -30,7 +30,6 @@ public class LastMessageIdRepositoryImpl implements LastMessageIdRepository {
         hashOperations = template.opsForHash();
     }
 
-
     @Override
     public Integer findLastMessageId(String chatId, String uuid) {
         Map<String, Integer> userLastMessages = hashOperations.get(KEY, chatId);
