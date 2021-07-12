@@ -1,6 +1,5 @@
 package az.code.tourapp.utils;
 
-import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -8,7 +7,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -18,7 +16,7 @@ public class CalendarUtil {
 
     public static final String[] WD = {"M", "T", "W", "T", "F", "S", "S"};
     public static DateTimeFormatter format = DateTimeFormat.forPattern("dd.MM.yyyy");
-    public static DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy").withLocale(Locale.forLanguageTag("az"));
+    public static DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy");
 
     public static InlineKeyboardMarkup generateKeyboard(java.time.LocalDate input, Locale locale) {
         LocalDate date = toJoda(input);

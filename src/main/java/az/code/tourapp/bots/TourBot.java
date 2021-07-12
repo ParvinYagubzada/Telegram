@@ -34,16 +34,11 @@ import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updates.SetWebhook;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
@@ -51,16 +46,16 @@ import java.io.ByteArrayInputStream;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import static az.code.tourapp.helpers.BotHelper.*;
 
 public class TourBot extends TelegramWebhookBot {
 
     public static final String OFFER_QUEUE = "offerQueue";
     public static final String IGNORE = "ignore";
-    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final FilesStorageService store;
     private final RabbitTemplate rabbit;
@@ -169,7 +164,7 @@ public class TourBot extends TelegramWebhookBot {
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
-            sendCustomMessage(chatId, messages.get("stopMessage").getText(locale));
+            execute(createCustomMessage(chatId, messages.get("stopMessage").getText(locale)));
         }
     }
 
@@ -253,32 +248,19 @@ public class TourBot extends TelegramWebhookBot {
         String messageId = replyToMessage.getMessageId().toString();
         Offer offer = offerRepo.getByMessageId(chatId, messageId);
         Request request = requestRepo.findByUuid(offer.getUuid());
-        SendMessage message = createRequestContactMessage(chatId, messageId, offer, request);
+        SendMessage message = createRequestContactMessage(chatId, messageId, offer, request.getLang());
         offerRepo.save(offer.toBuilder()
                 .messageId(execute(message).getMessageId().toString())
                 .build());
     }
 
-    private SendMessage createRequestContactMessage(String chatId, String messageId, Offer offer, Request request) {
+    private SendMessage createRequestContactMessage(String chatId, String messageId, Offer offer, Locale lang) {
         return SendMessage.builder()
                 .chatId(chatId)
                 .replyToMessageId(Integer.parseInt(messageId))
-                .text(String.format(messages.get("acceptOfferMessage").getText(request.getLang()),
+                .text(String.format(messages.get("acceptOfferMessage").getText(lang),
                         offer.getAgencyName()))
-                .replyMarkup(createRequestContactKeyboard(request))
-                .build();
-    }
-
-    private ReplyKeyboardMarkup createRequestContactKeyboard(Request request) {
-        KeyboardRow row = new KeyboardRow();
-        row.add(KeyboardButton.builder()
-                .requestContact(true)
-                .text(messages.get("acceptOffer").getText(request.getLang()))
-                .build());
-        return ReplyKeyboardMarkup.builder()
-                .keyboardRow(row)
-                .resizeKeyboard(true)
-                .oneTimeKeyboard(true)
+                .replyMarkup(createRequestContactKeyboard(lang, messages.get("acceptOffer")))
                 .build();
     }
 
@@ -298,7 +280,7 @@ public class TourBot extends TelegramWebhookBot {
                 })
                 .collect(Collectors.toList()));
         try {
-            deleteMessage(chatId, lastMessageRepo.findLastMessageId(chatId, uuid));
+            execute(createDeleteMessage(chatId, lastMessageRepo.findLastMessageId(chatId, uuid)));
         } catch (OfferExpiredException exc) {
             sendErrorMessage(exc, chatId);
         }
@@ -316,43 +298,15 @@ public class TourBot extends TelegramWebhookBot {
         String choice = query.getData();
         if (locale == null || (Objects.requireNonNull(cacheData).currentQuestion() != null
                 && !message.getText().equals(cacheData.currentQuestion().getText(locale)))) {
-            deleteMessage(chatId, messageId);
+            execute(createDeleteMessage(chatId, messageId));
         } else if (!choice.equals(IGNORE)) {
             if (!choice.startsWith("<") && !choice.startsWith(">")) {
-                handleCalendarChoice(chatId, messageId, choice);
+                execute(createEditMessage(chatId, messageId, choice));
+                handleMessage(chatId, choice, null);
             } else {
-                handleCalendarControls(chatId, locale, messageId, choice);
+                execute(handleCalendarControls(chatId, locale, messageId, choice));
             }
         }
-    }
-
-    //TODO: Move
-    private void deleteMessage(String chatId, Integer messageId) throws TelegramApiException {
-        execute(DeleteMessage.builder()
-                .chatId(chatId)
-                .messageId(messageId)
-                .build());
-    }
-
-    private void handleCalendarControls(String chatId, Locale locale, Integer messageId, String choice) throws TelegramApiException {
-        LocalDate newDate = choice.startsWith("<") ?
-                LocalDate.parse(choice.substring(1), formatter).minusMonths(1) :
-                LocalDate.parse(choice.substring(1), formatter).plusMonths(1);
-        execute(EditMessageReplyMarkup.builder()
-                .chatId(chatId)
-                .messageId(messageId)
-                .replyMarkup(CalendarUtil.generateKeyboard(newDate, locale.getJavaLocale()))
-                .build());
-    }
-
-    //TODO: Move
-    private void handleCalendarChoice(String chatId, Integer messageId, String choice) throws TelegramApiException {
-        execute(EditMessageText.builder()
-                .chatId(chatId)
-                .messageId(messageId)
-                .text(choice)
-                .build());
-        handleMessage(chatId, choice, null);
     }
 
     private void handleMoreOffers(String chatId, String uuid, Request request) throws TelegramApiException {
@@ -391,7 +345,6 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
-    //TODO: Move
     private UserData handleLanguage(UserData data, String text, String chatId) throws TelegramApiException {
         if (data.userLang() == null) {
             try {
@@ -448,25 +401,6 @@ public class TourBot extends TelegramWebhookBot {
         return result;
     }
 
-    //TODO: Move
-    private ReplyKeyboardMarkup createKeyboard(UserData data, List<Action> actions) {
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();
-        for (int i = 0; i < actions.size(); i++) {
-            String buttonText = actions.get(i).getText(data.userLang());
-            row.add(buttonText);
-            if ((i + 1) % 2 == 0 || i + 1 == actions.size()) {
-                keyboard.add(row);
-                row = new KeyboardRow();
-            }
-        }
-        return ReplyKeyboardMarkup.builder()
-                .keyboard(keyboard)
-                .oneTimeKeyboard(true)
-                .resizeKeyboard(true)
-                .build();
-    }
-
     private void sendErrorMessage(CustomException exception, String chatId) throws TelegramApiException {
         Locale text = cache.findByChatId(chatId) != null ? cache.findByChatId(chatId).userLang() : null;
         SendMessage message = SendMessage.builder()
@@ -474,23 +408,6 @@ public class TourBot extends TelegramWebhookBot {
                 .text(exception.getText(text))
                 .build();
         execute(message);
-    }
-
-    private void sendCustomMessage(String chatId, String myMessage) throws TelegramApiException {
-        SendMessage message = SendMessage.builder()
-                .chatId(chatId)
-                .replyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build())
-                .text(myMessage)
-                .build();
-        execute(message);
-    }
-
-    //TODO: Move
-    private Locale extractLocale(String data) {
-        String fieldName = "language=";
-        int start = data.indexOf(fieldName) + fieldName.length();
-        int end = data.indexOf(",", start);
-        return Locale.valueOf(data.substring(start, end));
     }
 
     @Override
