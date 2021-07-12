@@ -38,7 +38,6 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.PostConstruct;
@@ -208,7 +207,7 @@ public class TourBot extends TelegramWebhookBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(String.format(messages.get("loadMoreMessage").getText(locale), count));
-        InlineKeyboardMarkup kb = createInlineKeyboardMarkup(uuid, locale);
+        InlineKeyboardMarkup kb = createSingleButtonKeyboard(uuid, messages.get("loadMore").getText(locale));
         message.setReplyMarkup(kb);
         return message;
     }
@@ -218,22 +217,9 @@ public class TourBot extends TelegramWebhookBot {
         message.setChatId(chatId);
         message.setMessageId(messageId);
         message.setText(String.format(messages.get("loadMoreMessage").getText(locale), count));
-        InlineKeyboardMarkup kb = createInlineKeyboardMarkup(uuid, locale);
+        InlineKeyboardMarkup kb = createSingleButtonKeyboard(uuid, messages.get("loadMore").getText(locale));
         message.setReplyMarkup(kb);
         return message;
-    }
-
-    private InlineKeyboardMarkup createInlineKeyboardMarkup(String uuid, Locale locale) {
-        InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-        List<InlineKeyboardButton> sub = new ArrayList<>();
-        sub.add(InlineKeyboardButton.builder()
-                .callbackData("loadMore&" + uuid)
-                .text(messages.get("loadMore").getText(locale))
-                .build());
-        keyboard.add(sub);
-        kb.setKeyboard(keyboard);
-        return kb;
     }
 
     private void handleContact(Message message, Contact contact) {
@@ -391,6 +377,7 @@ public class TourBot extends TelegramWebhookBot {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.get(0).getType().equals(ActionType.DATE)) {
+            System.out.println("Line 380: sendQuestion, inside DATE");
             message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now(), data.userLang().getJavaLocale()));
         } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));

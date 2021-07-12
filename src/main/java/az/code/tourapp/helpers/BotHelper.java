@@ -9,8 +9,10 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
@@ -50,6 +52,19 @@ public class BotHelper {
                 .oneTimeKeyboard(true)
                 .resizeKeyboard(true)
                 .build();
+    }
+
+    public static InlineKeyboardMarkup createSingleButtonKeyboard(String uuid, String text) {
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> row = new ArrayList<>();
+        List<InlineKeyboardButton> sub = new ArrayList<>();
+        sub.add(InlineKeyboardButton.builder()
+                .callbackData("loadMore&" + uuid)
+                .text(text)
+                .build());
+        row.add(sub);
+        keyboard.setKeyboard(row);
+        return keyboard;
     }
 
     public static ReplyKeyboardMarkup createRequestContactKeyboard(Locale lang, CustomMessage message) {

@@ -19,6 +19,7 @@ public class CalendarUtil {
     public static DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy");
 
     public static InlineKeyboardMarkup generateKeyboard(java.time.LocalDate input, Locale locale) {
+        System.out.println("Inside generate keyboard");
         LocalDate date = toJoda(input);
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         // row - Month and Year
