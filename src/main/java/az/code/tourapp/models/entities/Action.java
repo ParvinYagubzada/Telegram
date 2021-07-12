@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -18,6 +19,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "actions")
 public class Action implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 6529685098267757691L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

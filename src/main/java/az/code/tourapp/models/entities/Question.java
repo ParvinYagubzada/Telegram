@@ -3,12 +3,10 @@ package az.code.tourapp.models.entities;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.IllegalOptionException;
 import az.code.tourapp.exceptions.InputMismatchException;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +19,9 @@ import java.util.regex.Pattern;
 @Entity
 @Table(name = "questions")
 public class Question implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 6529685098267757690L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -55,5 +56,10 @@ public class Question implements Serializable {
             case AZ -> this.context_az;
             case RU -> this.context_ru;
         };
+    }
+
+    @Override
+    public String toString() {
+        return fieldName;
     }
 }
