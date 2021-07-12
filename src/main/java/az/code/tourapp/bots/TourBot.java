@@ -377,7 +377,6 @@ public class TourBot extends TelegramWebhookBot {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.get(0).getType().equals(ActionType.DATE)) {
-            System.out.println("Line 380: sendQuestion, inside DATE");
             message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now(), data.userLang().getJavaLocale()));
         } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));
