@@ -24,6 +24,8 @@ import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
 import az.code.tourapp.services.FilesStorageService;
 import az.code.tourapp.utils.CalendarUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -113,27 +115,31 @@ public class TourBot extends TelegramWebhookBot {
             handleCallbackQuery(update.getCallbackQuery());
         } else if (update.hasMessage()) {
             if (update.getMessage().hasText()) {
-                String msg = update.getMessage().getText();
-                if (msg.startsWith("/")) {
-                    msg = msg.substring(1);
-                    Consumer<Update> action;
-                    if ((action = commands.get(new Command(msg))) != null) {
-                        action.accept(update);
-                    }
-                } else {
-                    Message message = update.getMessage();
-                    if (message.getReplyToMessage() != null && message.getReplyToMessage().hasPhoto()) {
-                        handleReplyMessage(message.getReplyToMessage());
-                    } else {
-                        handleMessage(message.getChatId().toString(), message.getText(), message.getFrom());
-                    }
-                }
+                handleTextMessage(update);
             } else {
                 Message message = update.getMessage();
                 handleContact(message.getReplyToMessage(), message.getContact());
             }
         }
         return null;
+    }
+
+    private void handleTextMessage(Update update) throws TelegramApiException {
+        String msg = update.getMessage().getText();
+        if (msg.startsWith("/")) {
+            msg = msg.substring(1);
+            Consumer<Update> action;
+            if ((action = commands.get(new Command(msg))) != null) {
+                action.accept(update);
+            }
+        } else {
+            Message message = update.getMessage();
+            if (message.getReplyToMessage() != null && message.getReplyToMessage().hasPhoto()) {
+                handleReplyTextMessage(message.getReplyToMessage());
+            } else {
+                handleMessage(message.getChatId().toString(), message.getText(), message.getFrom());
+            }
+        }
     }
 
     @SneakyThrows
@@ -229,7 +235,7 @@ public class TourBot extends TelegramWebhookBot {
                 new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), contact));
     }
 
-    private void handleReplyMessage(Message replyToMessage) throws TelegramApiException {
+    private void handleReplyTextMessage(Message replyToMessage) throws TelegramApiException {
         String chatId = replyToMessage.getChatId().toString();
         String messageId = replyToMessage.getMessageId().toString();
         Offer offer = offerRepo.getByMessageId(chatId, messageId);
@@ -328,6 +334,8 @@ public class TourBot extends TelegramWebhookBot {
             handleNextQuestion(data, chatId, user, nextQuestion);
         } catch (IllegalOptionException | InputMismatchException exception) {
             sendErrorMessage(exception, chatId);
+        } catch (JsonProcessingException parseException) {
+            parseException.printStackTrace();
         }
     }
 
@@ -344,12 +352,13 @@ public class TourBot extends TelegramWebhookBot {
         return data;
     }
 
-    private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException {
+    private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException, JsonProcessingException {
         if (sendQuestion(data, chatId, nextQuestion)) {
             cache.saveByChatId(chatId, data.currentQuestion(nextQuestion));
         } else {
+            ObjectMapper mapper = new ObjectMapper();
             String uuid = UUID.randomUUID().toString();
-            String userData = data.data().toString();
+            String userData = mapper.writeValueAsString(data.data());
             requestRepo.save(Request.builder()
                     .uuid(uuid)
                     .chatId(chatId)
@@ -377,7 +386,7 @@ public class TourBot extends TelegramWebhookBot {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.get(0).getType().equals(ActionType.DATE)) {
-            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now(), data.userLang().getJavaLocale()));
+            message.setReplyMarkup(CalendarUtil.createCalendar(LocalDate.now(), data.userLang().getJavaLocale()));
         } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));
         } else {

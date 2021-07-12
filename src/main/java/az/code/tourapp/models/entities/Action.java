@@ -2,10 +2,7 @@ package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.io.Serial;
@@ -14,6 +11,7 @@ import java.util.Objects;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity

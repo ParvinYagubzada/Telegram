@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static az.code.tourapp.utils.CalendarUtil.createButton;
+
 public class BotHelper {
 
     public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
@@ -32,7 +34,7 @@ public class BotHelper {
         return EditMessageReplyMarkup.builder()
                 .chatId(chatId)
                 .messageId(messageId)
-                .replyMarkup(CalendarUtil.generateKeyboard(newDate, locale.getJavaLocale()))
+                .replyMarkup(CalendarUtil.createCalendar(newDate, locale.getJavaLocale()))
                 .build();
     }
 
@@ -58,10 +60,7 @@ public class BotHelper {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> row = new ArrayList<>();
         List<InlineKeyboardButton> sub = new ArrayList<>();
-        sub.add(InlineKeyboardButton.builder()
-                .callbackData("loadMore&" + uuid)
-                .text(text)
-                .build());
+        sub.add(createButton("loadMore&" + uuid, text));
         row.add(sub);
         keyboard.setKeyboard(row);
         return keyboard;
@@ -104,9 +103,9 @@ public class BotHelper {
     }
 
     public static Locale extractLocale(String data) {
-        String fieldName = "language=";
+        System.out.println(data);
+        String fieldName = "language\":\"";
         int start = data.indexOf(fieldName) + fieldName.length();
-        int end = data.indexOf(",", start);
-        return Locale.valueOf(data.substring(start, end));
+        return Locale.valueOf(data.substring(start, start + 2));
     }
 }
