@@ -24,13 +24,9 @@ import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
 import az.code.tourapp.services.FilesStorageService;
 import az.code.tourapp.utils.CalendarUtil;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.data.domain.PageRequest;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -121,8 +117,7 @@ public class TourBot extends TelegramWebhookBot {
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
         if (update.hasCallbackQuery()) {
             handleCallbackQuery(update.getCallbackQuery());
-        }
-        if (update.hasMessage()) {
+        } else if (update.hasMessage()) {
             if (update.getMessage().hasText()) {
                 String msg = update.getMessage().getText();
                 if (msg.startsWith("/")) {
@@ -303,9 +298,7 @@ public class TourBot extends TelegramWebhookBot {
                 })
                 .collect(Collectors.toList()));
         try {
-            execute(DeleteMessage.builder()
-                    .chatId(chatId)
-                    .messageId(lastMessageRepo.findLastMessageId(chatId, uuid)).build());
+            deleteMessage(chatId, lastMessageRepo.findLastMessageId(chatId, uuid));
         } catch (OfferExpiredException exc) {
             sendErrorMessage(exc, chatId);
         }
@@ -316,24 +309,40 @@ public class TourBot extends TelegramWebhookBot {
 
     private void handleCalendar(CallbackQuery query) throws TelegramApiException {
         String chatId = query.getMessage().getChatId().toString();
+        Locale locale = cache.findByChatId(chatId) != null ? cache.findByChatId(chatId).userLang() : null;
         Integer messageId = query.getMessage().getMessageId();
         String choice = query.getData();
-        if (!choice.equals(IGNORE)) {
+        if (locale == null) {
+            deleteMessage(chatId, messageId);
+        } else if (!choice.equals(IGNORE)) {
             if (!choice.startsWith("<") && !choice.startsWith(">")) {
                 handleCalendarChoice(chatId, messageId, choice);
             } else {
-                LocalDate newDate = choice.startsWith("<") ?
-                        LocalDate.parse(choice.substring(1), formatter).minusMonths(1):
-                        LocalDate.parse(choice.substring(1), formatter).plusMonths(1);
-                execute(EditMessageReplyMarkup.builder()
-                        .chatId(chatId)
-                        .messageId(messageId)
-                        .replyMarkup(CalendarUtil.generateKeyboard(newDate))
-                        .build());
+                handleCalendarControls(chatId, locale, messageId, choice);
             }
         }
     }
 
+    //TODO: Move
+    private void deleteMessage(String chatId, Integer messageId) throws TelegramApiException {
+        execute(DeleteMessage.builder()
+                .chatId(chatId)
+                .messageId(messageId)
+                .build());
+    }
+
+    private void handleCalendarControls(String chatId, Locale locale, Integer messageId, String choice) throws TelegramApiException {
+        LocalDate newDate = choice.startsWith("<") ?
+                LocalDate.parse(choice.substring(1), formatter).minusMonths(1) :
+                LocalDate.parse(choice.substring(1), formatter).plusMonths(1);
+        execute(EditMessageReplyMarkup.builder()
+                .chatId(chatId)
+                .messageId(messageId)
+                .replyMarkup(CalendarUtil.generateKeyboard(newDate, locale.getJavaLocale()))
+                .build());
+    }
+
+    //TODO: Move
     private void handleCalendarChoice(String chatId, Integer messageId, String choice) throws TelegramApiException {
         execute(EditMessageText.builder()
                 .chatId(chatId)
@@ -353,8 +362,7 @@ public class TourBot extends TelegramWebhookBot {
                 execute(editLoadMore(chatId, uuid, lastMessageRepo.findLastMessageId(chatId, uuid),
                         request.getLang(), count));
             }
-        }
-        if (count == 0 && !request.getStatus()) {
+        } else if (!request.getStatus()) {
             lastMessageRepo.deleteLastMessageId(chatId, uuid);
             offerCountRepo.deleteOfferCount(chatId, uuid);
         }
@@ -380,6 +388,7 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
+    //TODO: Move
     private UserData handleLanguage(UserData data, String text, String chatId) throws TelegramApiException {
         if (data.userLang() == null) {
             try {
@@ -426,7 +435,7 @@ public class TourBot extends TelegramWebhookBot {
             message.setReplyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build());
             result = false;
         } else if (actions.get(0).getType().equals(ActionType.DATE)) {
-            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now()));
+            message.setReplyMarkup(CalendarUtil.generateKeyboard(LocalDate.now(), data.userLang().getJavaLocale()));
         } else if (actions.get(0).getType().equals(ActionType.BUTTON)) {
             message.setReplyMarkup(createKeyboard(data, actions));
         } else {
@@ -436,6 +445,7 @@ public class TourBot extends TelegramWebhookBot {
         return result;
     }
 
+    //TODO: Move
     private ReplyKeyboardMarkup createKeyboard(UserData data, List<Action> actions) {
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
@@ -472,6 +482,7 @@ public class TourBot extends TelegramWebhookBot {
         execute(message);
     }
 
+    //TODO: Move
     private Locale extractLocale(String data) {
         String fieldName = "language=";
         int start = data.indexOf(fieldName) + fieldName.length();

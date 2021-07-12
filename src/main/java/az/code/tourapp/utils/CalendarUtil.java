@@ -1,28 +1,31 @@
 package az.code.tourapp.utils;
 
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class CalendarUtil {
 
     public static final String IGNORE = "ignore";
 
     public static final String[] WD = {"M", "T", "W", "T", "F", "S", "S"};
-    public static final DateTimeFormatter format = DateTimeFormat.forPattern("dd.MM.yyyy");
+    public static DateTimeFormatter format = DateTimeFormat.forPattern("dd.MM.yyyy");
+    public static DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy").withLocale(Locale.forLanguageTag("az"));
 
-    public static InlineKeyboardMarkup generateKeyboard(java.time.LocalDate input) {
+    public static InlineKeyboardMarkup generateKeyboard(java.time.LocalDate input, Locale locale) {
         LocalDate date = toJoda(input);
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         // row - Month and Year
         List<InlineKeyboardButton> headerRow = new ArrayList<>();
-        headerRow.add(createButton(IGNORE, new SimpleDateFormat("MMM yyyy").format(date.toDate())));
+        headerRow.add(createButton(IGNORE, headerFormat.withLocale(locale).print(date)));
         keyboard.add(headerRow);
 
         // row - Days of the week
@@ -42,7 +45,6 @@ public class CalendarUtil {
             firstDay = firstDay.plusDays(7 - shift);
             shift = 0;
         }
-
         List<InlineKeyboardButton> controlsRow = new ArrayList<>();
         controlsRow.add(createButton("<" + format.print(date), "<"));
         controlsRow.add(createButton(">" + format.print(date), ">"));
