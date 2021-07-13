@@ -2,7 +2,7 @@ package az.code.tourapp.helpers;
 
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.CustomMessage;
-import az.code.tourapp.models.UserData;
+import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.utils.CalendarUtil;
 import org.junit.jupiter.api.Test;
@@ -45,26 +45,26 @@ class BotHelperTest {
 
     @Test
     void createKeyboard() {
-        UserData data = UserData.builder().userLang(Locale.EN).build();
+        Locale locale = Locale.EN;
         List<Action> actions = IntStream.range(1, 10)
                 .mapToObj(value -> Action.builder().text("This is test action no:" + value).build())
                 .collect(Collectors.toList());
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         for (int i = 0; i < actions.size(); i++) {
-            String buttonText = actions.get(i).getText(data.userLang());
+            String buttonText = BotHelper.getText(actions.get(i), locale);
             row.add(buttonText);
             if ((i + 1) % 2 == 0 || i + 1 == actions.size()) {
                 keyboard.add(row);
                 row = new KeyboardRow();
             }
         }
-        ReplyKeyboardMarkup expected =  ReplyKeyboardMarkup.builder()
+        ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
                 .keyboard(keyboard)
                 .oneTimeKeyboard(true)
                 .resizeKeyboard(true)
                 .build();
-        assertEquals(expected, BotHelper.createKeyboard(data, actions));
+        assertEquals(expected, BotHelper.createKeyboard(actions, locale));
     }
 
     @Test
@@ -84,21 +84,21 @@ class BotHelperTest {
 
     @Test
     void createRequestContactKeyboard() {
-        Locale lang = Locale.EN;
+        Locale locale = Locale.EN;
         CustomMessage message = CustomMessage.builder()
-                .context(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
+                .text(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
                 .build();
         KeyboardRow row = new KeyboardRow();
         row.add(KeyboardButton.builder()
                 .requestContact(true)
-                .text(message.getText(lang))
+                .text(BotHelper.getText(message, locale))
                 .build());
         ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
                 .keyboardRow(row)
                 .resizeKeyboard(true)
                 .oneTimeKeyboard(true)
                 .build();
-        assertEquals(expected, BotHelper.createRequestContactKeyboard(lang, message));
+        assertEquals(expected, BotHelper.createRequestContactKeyboard(locale, message));
     }
 
     @Test
@@ -140,5 +140,13 @@ class BotHelperTest {
     void extractLocale() {
         String data = "{\"travelEndDate\":\"20.07.2021\",\"tourType\":\"Istirahət-gəzinti\",\"travelStartDate\":\"21.07.2021\",\"language\":\"AZ\",\"travellerCount\":\"1234\",\"addressFrom\":\"Baki\",\"addressTo\":\"TurAl təklif etsin\",\"budget\":\"1234\"}";
         assertEquals(Locale.AZ, BotHelper.extractLocale(data));
+    }
+
+    @Test
+    void getText() {
+        String expected = "test";
+        Translatable entry = CustomMessage.builder().text("test").build();
+        Locale locale = Locale.EN;
+        assertEquals(expected, BotHelper.getText(entry, locale));
     }
 }

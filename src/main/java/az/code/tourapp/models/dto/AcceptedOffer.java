@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.Contact;
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AcceptedOffer {
+
     String uuid;
     String agencyName;
     String phoneNumber;

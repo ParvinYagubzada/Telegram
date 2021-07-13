@@ -24,7 +24,7 @@ class CalendarUtilTest {
     @Test
     void createCalendar() {
         Locale locale = az.code.tourapp.enums.Locale.EN.getJavaLocale();
-        LocalDate javaDate = LocalDate.of(2021,7,28);
+        LocalDate javaDate = LocalDate.of(2021, 7, 28);
         org.joda.time.LocalDate date = CalendarUtil.toJodaLocalDate(javaDate);
         InlineKeyboardMarkup expected = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();

@@ -1,4 +1,4 @@
-package az.code.tourapp.exceptions;
+package az.code.tourapp.exceptions.api;
 
 public class MissingFirstQuestionException extends RuntimeException{
     public MissingFirstQuestionException() {

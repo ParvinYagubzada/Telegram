@@ -19,7 +19,6 @@ public interface RequestRepository extends JpaRepository<Request, String> {
     @Cacheable("request")
     Request findByUuid(String uuid);
 
-    @Cacheable("request")
     @Query("SELECT request FROM Request request " +
             "WHERE request.chatId = :chatId " +
             "AND request.status = true ")

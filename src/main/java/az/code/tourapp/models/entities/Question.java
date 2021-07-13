@@ -1,9 +1,14 @@
 package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.Locale;
-import az.code.tourapp.exceptions.IllegalOptionException;
-import az.code.tourapp.exceptions.InputMismatchException;
-import lombok.*;
+import az.code.tourapp.exceptions.user.IllegalOptionException;
+import az.code.tourapp.exceptions.user.InputMismatchException;
+import az.code.tourapp.helpers.BotHelper;
+import az.code.tourapp.models.Translatable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serial;
@@ -18,16 +23,16 @@ import java.util.regex.Pattern;
 @AllArgsConstructor
 @Entity
 @Table(name = "questions")
-public class Question implements Serializable {
+public class Question implements Translatable, Serializable {
     @Serial
     private static final long serialVersionUID = 6529685098267757690L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String context;
-    private String context_az;
-    private String context_ru;
+    private String text;
+    private String textAz;
+    private String textRu;
     private String fieldName;
     @OneToMany(mappedBy = "baseQuestion", fetch = FetchType.EAGER)
     private List<Action> actions;
@@ -35,7 +40,7 @@ public class Question implements Serializable {
     public Question findNext(String actionText, Locale locale) {
         if (this.actions.size() != 1) {
             Optional<Action> find = this.actions.stream()
-                    .filter(action -> action.getText(locale).equals(actionText))
+                    .filter(action -> BotHelper.getText(action, locale).equals(actionText))
                     .findFirst();
             if (find.isPresent())
                 return find.get().getNextQuestion();
@@ -49,17 +54,8 @@ public class Question implements Serializable {
         }
     }
 
-    public String getText(Locale locale) {
-        if (locale == null) return this.context_az;
-        return switch (locale) {
-            case EN -> this.context;
-            case AZ -> this.context_az;
-            case RU -> this.context_ru;
-        };
-    }
-
     @Override
     public String toString() {
-        return fieldName;
+        return String.join(":", fieldName, id.toString());
     }
 }

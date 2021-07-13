@@ -2,7 +2,7 @@ package az.code.tourapp.helpers;
 
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.CustomMessage;
-import az.code.tourapp.models.UserData;
+import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.utils.CalendarUtil;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -38,11 +38,11 @@ public class BotHelper {
                 .build();
     }
 
-    public static ReplyKeyboardMarkup createKeyboard(UserData data, List<Action> actions) {
+    public static ReplyKeyboardMarkup createKeyboard(List<Action> actions, Locale locale) {
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         for (int i = 0; i < actions.size(); i++) {
-            String buttonText = actions.get(i).getText(data.userLang());
+            String buttonText = getText(actions.get(i), locale);
             row.add(buttonText);
             if ((i + 1) % 2 == 0 || i + 1 == actions.size()) {
                 keyboard.add(row);
@@ -66,11 +66,11 @@ public class BotHelper {
         return keyboard;
     }
 
-    public static ReplyKeyboardMarkup createRequestContactKeyboard(Locale lang, CustomMessage message) {
+    public static ReplyKeyboardMarkup createRequestContactKeyboard(Locale locale, CustomMessage message) {
         KeyboardRow row = new KeyboardRow();
         row.add(KeyboardButton.builder()
                 .requestContact(true)
-                .text(message.getText(lang))
+                .text(getText(message, locale))
                 .build());
         return ReplyKeyboardMarkup.builder()
                 .keyboardRow(row)
@@ -103,9 +103,17 @@ public class BotHelper {
     }
 
     public static Locale extractLocale(String data) {
-        System.out.println(data);
         String fieldName = "language\":\"";
         int start = data.indexOf(fieldName) + fieldName.length();
         return Locale.valueOf(data.substring(start, start + 2));
+    }
+
+    public static String getText(Translatable entry, Locale locale) {
+        if (locale == null) return entry.getText();
+        return switch (locale) {
+            case EN -> entry.getText();
+            case AZ -> entry.getTextAz();
+            case RU -> entry.getTextRu();
+        };
     }
 }

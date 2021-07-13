@@ -1,7 +1,7 @@
 package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.ActionType;
-import az.code.tourapp.enums.Locale;
+import az.code.tourapp.models.Translatable;
 import lombok.*;
 
 import javax.persistence.*;
@@ -16,7 +16,7 @@ import java.util.Objects;
 @AllArgsConstructor
 @Entity
 @Table(name = "actions")
-public class Action implements Serializable {
+public class Action implements Translatable, Serializable {
     @Serial
     private static final long serialVersionUID = 6529685098267757691L;
 
@@ -24,8 +24,8 @@ public class Action implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String text;
-    private String text_az;
-    private String text_ru;
+    private String textAz;
+    private String textRu;
     @Enumerated(EnumType.STRING)
     private ActionType type;
 
@@ -48,14 +48,5 @@ public class Action implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(text);
-    }
-
-    public String getText(Locale locale) {
-        if (locale == null) return this.text_az;
-        return switch (locale) {
-            case EN -> this.text;
-            case AZ -> this.text_az;
-            case RU -> this.text_ru;
-        };
     }
 }
