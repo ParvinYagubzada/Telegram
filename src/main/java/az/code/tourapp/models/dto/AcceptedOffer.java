@@ -13,17 +13,19 @@ public class AcceptedOffer {
 
     String uuid;
     String agencyName;
+    String userName;
     String phoneNumber;
-    String fistName;
+    String firstName;
     String lastName;
     String userId;
 
-    public AcceptedOffer(String uuid, String agencyName, Contact contact) {
+    public AcceptedOffer(String uuid, String agencyName, String userName, Contact contact) {
         this.uuid = uuid;
         this.agencyName = agencyName;
-        this.phoneNumber = contact.getPhoneNumber();
-        this.fistName = contact.getFirstName();
+        this.userName = userName;
+        this.firstName = contact.getFirstName();
         this.lastName = contact.getLastName();
         this.userId = contact.getUserId().toString();
+        this.phoneNumber = contact.getPhoneNumber() != null ? contact.getPhoneNumber() : null;
     }
 }

@@ -46,6 +46,7 @@ public class CalendarUtil {
     private static void createDaysSection(LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         LocalDate firstDay = date.dayOfMonth().withMinimumValue();
         int shift = firstDay.dayOfWeek().get();
+        shift = shift % 7 == 0 ? 0 : shift;
         int daysInMonth = firstDay.dayOfMonth().getMaximumValue();
         int rows = ((daysInMonth + shift) % 7 > 0 ? 1 : 0) + (daysInMonth + shift) / 7;
         for (int i = 0; i < rows; i++) {

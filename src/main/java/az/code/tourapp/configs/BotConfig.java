@@ -1,10 +1,7 @@
 package az.code.tourapp.configs;
 
 import az.code.tourapp.models.CustomMessage;
-import az.code.tourapp.repositories.ActionRepository;
-import az.code.tourapp.repositories.OfferRepository;
-import az.code.tourapp.repositories.QuestionRepository;
-import az.code.tourapp.repositories.RequestRepository;
+import az.code.tourapp.repositories.*;
 import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
@@ -33,6 +30,7 @@ public class BotConfig {
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
     private final OfferRepository offerRepo;
+    private final UserRepository userRepo;
 
     //Redis Repos
     private final UserDataRepository userDataRepo;
@@ -43,6 +41,7 @@ public class BotConfig {
     private String username;
     private String domain;
     private String api;
+    private Long firstQuestionId;
 
     private Map<String, CustomMessage> messages;
 }

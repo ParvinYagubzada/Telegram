@@ -3,6 +3,7 @@ package az.code.tourapp.bots;
 import az.code.tourapp.configs.BotConfig;
 import az.code.tourapp.configs.dev.DevRabbitConfig;
 import az.code.tourapp.enums.ActionType;
+import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.api.MissingFirstQuestionException;
 import az.code.tourapp.exceptions.user.InputMismatchException;
@@ -13,14 +14,8 @@ import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.UserData;
 import az.code.tourapp.models.dto.AcceptedOffer;
 import az.code.tourapp.models.dto.RawOffer;
-import az.code.tourapp.models.entities.Action;
-import az.code.tourapp.models.entities.Offer;
-import az.code.tourapp.models.entities.Question;
-import az.code.tourapp.models.entities.Request;
-import az.code.tourapp.repositories.ActionRepository;
-import az.code.tourapp.repositories.OfferRepository;
-import az.code.tourapp.repositories.QuestionRepository;
-import az.code.tourapp.repositories.RequestRepository;
+import az.code.tourapp.models.entities.*;
+import az.code.tourapp.repositories.*;
 import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
@@ -34,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -73,6 +69,7 @@ public class TourBot extends TelegramWebhookBot {
     private final ActionRepository actionRepo;
     private final RequestRepository requestRepo;
     private final OfferRepository offerRepo;
+    private final UserRepository userRepo;
 
     //Redis Repos
     private final UserDataRepository cache;
@@ -83,6 +80,7 @@ public class TourBot extends TelegramWebhookBot {
     private final String username;
     private final String domain;
     private final String api;
+    private final Long firstQuestionId;
 
     private final Map<Command, Consumer<Update>> commands = new HashMap<>();
     private final Map<String, CustomMessage> messages;
@@ -94,6 +92,7 @@ public class TourBot extends TelegramWebhookBot {
         actionRepo = properties.getActionRepo();
         requestRepo = properties.getRequestRepo();
         offerRepo = properties.getOfferRepo();
+        userRepo = properties.getUserRepo();
         cache = properties.getUserDataRepo();
         lastMessageRepo = properties.getLastMessageRepo();
         offerCountRepo = properties.getOfferCountRepo();
@@ -101,6 +100,7 @@ public class TourBot extends TelegramWebhookBot {
         username = properties.getUsername();
         domain = properties.getDomain();
         api = properties.getApi();
+        firstQuestionId = properties.getFirstQuestionId();
         messages = properties.getMessages();
     }
 
@@ -121,11 +121,11 @@ public class TourBot extends TelegramWebhookBot {
         if (update.hasCallbackQuery()) {
             handleCallbackQuery(update.getCallbackQuery());
         } else if (update.hasMessage()) {
-            if (update.getMessage().hasText()) {
+            Message message = update.getMessage();
+            if (message.hasText()) {
                 handleTextMessage(update);
-            } else {
-                Message message = update.getMessage();
-                handleContact(message.getReplyToMessage(), message.getContact());
+            } else if (message.isReply()) {
+                handleContact(message.getReplyToMessage(), message.getFrom().getUserName(), message.getContact());
             }
         }
         return null;
@@ -142,7 +142,7 @@ public class TourBot extends TelegramWebhookBot {
         } else {
             Message message = update.getMessage();
             if (message.getReplyToMessage() != null && message.getReplyToMessage().hasPhoto()) {
-                handleReplyTextMessage(message.getReplyToMessage());
+                handleReplyTextMessage(message, message.getReplyToMessage());
             } else {
                 handleMessage(message.getChatId().toString(), message.getText(), message.getFrom());
             }
@@ -156,7 +156,7 @@ public class TourBot extends TelegramWebhookBot {
             sendErrorMessage(new AlreadyHaveSessionException(), chatId);
             return;
         }
-        Question question = questionRepo.findById(1L).orElseThrow(MissingFirstQuestionException::new);
+        Question question = questionRepo.findById(firstQuestionId).orElseThrow(MissingFirstQuestionException::new);
         UserData data = UserData.builder().userLang(null).currentQuestion(question).build();
         cache.saveByChatId(chatId, data);
         sendQuestion(data, chatId, question);
@@ -172,7 +172,11 @@ public class TourBot extends TelegramWebhookBot {
             Request request = requestRepo.findUuidByChatId(chatId);
             Locale locale = null;
             if (request != null) {
-                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, request.getUuid());
+                String uuid = request.getUuid();
+                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
+                Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
+                lastMessageRepo.deleteLastMessageId(chatId, uuid);
+                execute(createDeleteMessage(chatId, messageId));
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -235,32 +239,48 @@ public class TourBot extends TelegramWebhookBot {
         return message;
     }
 
-    private void handleContact(Message message, Contact contact) {
-        Offer offer = offerRepo.getByMessageId(message.getChatId().toString(),
-                message.getMessageId().toString());
-        rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
-                new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), contact));
+    private void handleContact(Message replyMessage, String username, Contact contact) {
+        Offer offer = offerRepo.getByMessageId(replyMessage.getChatId().toString(),
+                replyMessage.getMessageId().toString());
+        if (offer != null) {
+            userRepo.save(new BotUser(username, contact));
+            rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+                    new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
+        }
     }
 
-    private void handleReplyTextMessage(Message replyToMessage) throws TelegramApiException {
+    private void handleReplyTextMessage(Message userMessage, Message replyToMessage) throws TelegramApiException {
         String chatId = replyToMessage.getChatId().toString();
         String messageId = replyToMessage.getMessageId().toString();
         Offer offer = offerRepo.getByMessageId(chatId, messageId);
         Request request = requestRepo.findByUuid(offer.getUuid());
-        SendMessage message = createRequestContactMessage(chatId, messageId, offer, request.getLang());
+        SendMessage message = createRequestContactMessage(userMessage, messageId, offer, request.getLang());
         offerRepo.save(offer.toBuilder()
                 .messageId(execute(message).getMessageId().toString())
                 .build());
-    }
+    }//TODO: sendPreUserInfo(userMessage, offer, rabbit);
 
-    private SendMessage createRequestContactMessage(String chatId, String messageId, Offer offer, Locale locale) {
-        return SendMessage.builder()
+    private SendMessage createRequestContactMessage(Message message, String messageId, Offer offer, Locale locale) {
+        String chatId = message.getChatId().toString();
+        String userId = message.getFrom().getId().toString();
+        Optional<BotUser> user = userRepo.findById(userId);
+        SendMessage result = SendMessage.builder()
                 .chatId(chatId)
                 .replyToMessageId(Integer.parseInt(messageId))
-                .text(String.format(getText(messages.get("acceptOfferMessage"), locale),
-                        offer.getAgencyName()))
-                .replyMarkup(createRequestContactKeyboard(locale, messages.get("acceptOffer")))
+                .text(String.format(getText(messages.get("sendContactMessage"), locale), offer.getAgencyName()))
                 .build();
+        if (user.isPresent()) {
+            //TODO: BotUser botUser = user.get();
+            result.setReplyMarkup(createRequestContactKeyboard(locale,
+                    Pair.of(messages.get("sendContact"), ButtonType.DEFAULT),
+                    Pair.of(messages.get("sendContactEdit"), ButtonType.CONTACT),
+                    Pair.of(messages.get("sendContactCancel"), ButtonType.DEFAULT)));
+        } else {
+            result.setReplyMarkup(createRequestContactKeyboard(locale,
+                            Pair.of(messages.get("sendContact"), ButtonType.CONTACT),
+                            Pair.of(messages.get("sendContactCancel"), ButtonType.DEFAULT)));
+        }
+        return result;
     }
 
     private void handleCallbackQuery(CallbackQuery query) throws TelegramApiException {
