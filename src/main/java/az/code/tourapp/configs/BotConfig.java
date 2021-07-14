@@ -2,6 +2,7 @@ package az.code.tourapp.configs;
 
 import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.repositories.*;
+import az.code.tourapp.repositories.cache.ContactRepository;
 import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
@@ -36,6 +37,7 @@ public class BotConfig {
     private final UserDataRepository userDataRepo;
     private final LastMessageIdRepository lastMessageRepo;
     private final OfferCountRepository offerCountRepo;
+    private final ContactRepository contactRepo;
 
     private String token;
     private String username;

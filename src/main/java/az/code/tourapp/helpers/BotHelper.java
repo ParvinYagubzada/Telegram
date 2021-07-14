@@ -3,13 +3,11 @@ package az.code.tourapp.helpers;
 import az.code.tourapp.configs.dev.DevRabbitConfig;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
-import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.dto.AcceptedOffer;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.models.entities.Offer;
 import az.code.tourapp.utils.CalendarUtil;
-import org.glassfish.jersey.internal.inject.Custom;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -17,7 +15,6 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Contact;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -48,9 +45,8 @@ public class BotHelper {
                 .build();
     }
 
-    public static void sendPreUserInfo(Message replyToMessage, Offer offer, RabbitTemplate rabbit) {
+    public static void sendPreUserInfo(User user, Offer offer, RabbitTemplate rabbit) {
         Contact contact = new Contact();
-        User user = replyToMessage.getFrom();
         contact.setFirstName(user.getFirstName());
         contact.setLastName(user.getLastName());
         contact.setUserId(user.getId());
@@ -87,13 +83,12 @@ public class BotHelper {
     }
 
     @SafeVarargs
-    public static ReplyKeyboardMarkup createRequestContactKeyboard
-            (Locale locale, Pair<CustomMessage, ButtonType>... messages) {
+    public static ReplyKeyboardMarkup createRequestContactKeyboard(Pair<String, ButtonType>... messages) {
         List<KeyboardRow> keyboard = new ArrayList<>();
-        KeyboardRow row = new KeyboardRow();;
-        for (Pair<CustomMessage, ButtonType> message : messages) {
+        KeyboardRow row = new KeyboardRow();
+        for (Pair<String, ButtonType> message : messages) {
             KeyboardButton button = KeyboardButton.builder()
-                    .text(getText(message.getFirst(), locale)).build();
+                    .text(message.getFirst()).build();
             if (message.getSecond() == ButtonType.CONTACT)
                 button.setRequestContact(true);
             row.add(button);

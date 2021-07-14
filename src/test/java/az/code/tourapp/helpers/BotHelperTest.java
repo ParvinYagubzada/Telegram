@@ -1,11 +1,13 @@
 package az.code.tourapp.helpers;
 
+import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.utils.CalendarUtil;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -84,25 +86,30 @@ class BotHelperTest {
 
     @Test
     void createRequestContactKeyboard() {
-//        Locale locale = Locale.EN;
-//        CustomMessage message = CustomMessage.builder()
-//                .text(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
-//                .build();
-//        KeyboardRow row = new KeyboardRow();
-//        row.add(KeyboardButton.builder()
-//                .requestContact(true)
-//                .text(BotHelper.getText(message, locale))
-//                .build());
-//        row.add(KeyboardButton.builder()
-//                .requestContact(true)
-//                .text(BotHelper.getText(message, locale))
-//                .build());
-//        ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
-//                .keyboardRow(row)
-//                .resizeKeyboard(true)
-//                .oneTimeKeyboard(true)
-//                .build();
-//        assertEquals(expected, BotHelper.createRequestContactKeyboard(locale, message, message));
+        Locale locale = Locale.EN;
+        CustomMessage message = CustomMessage.builder()
+                .text(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
+                .build();
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        KeyboardRow row = new KeyboardRow();
+        row.add(KeyboardButton.builder()
+                .requestContact(true)
+                .text(BotHelper.getText(message, locale))
+                .build());
+        keyboard.add(row);
+        row = new KeyboardRow();
+        row.add(KeyboardButton.builder()
+                .text(BotHelper.getText(message, locale))
+                .build());
+        keyboard.add(row);
+        ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
+                .keyboard(keyboard)
+                .resizeKeyboard(true)
+                .oneTimeKeyboard(true)
+                .build();
+        Pair<String, ButtonType> first = Pair.of(BotHelper.getText(message, locale), ButtonType.CONTACT);
+        Pair<String, ButtonType> second = Pair.of(BotHelper.getText(message, locale), ButtonType.DEFAULT);
+        assertEquals(expected, BotHelper.createRequestContactKeyboard(first, second));
     }
 
     @Test

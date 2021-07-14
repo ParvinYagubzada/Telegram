@@ -3,7 +3,9 @@ package az.code.tourapp.models.entities;
 import lombok.*;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Getter
 @Setter
@@ -15,7 +17,7 @@ import javax.persistence.*;
 public class BotUser {
 
     @Id
-    private String userId;
+    private Long userId;
     private String userName;
     private String phoneNumber;
     private String firstName;
@@ -25,7 +27,7 @@ public class BotUser {
         this.userName = userName;
         this.firstName = contact.getFirstName();
         this.lastName = contact.getLastName();
-        this.userId = contact.getUserId().toString();
+        this.userId = contact.getUserId();
         this.phoneNumber = contact.getPhoneNumber();
     }
 }
