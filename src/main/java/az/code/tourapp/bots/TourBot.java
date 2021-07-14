@@ -176,9 +176,11 @@ public class TourBot extends TelegramWebhookBot {
             if (request != null) {
                 String uuid = request.getUuid();
                 rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
-                Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
-                lastMessageRepo.deleteLastMessageId(chatId, uuid);
-                execute(createDeleteMessage(chatId, messageId));
+                try {
+                    Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
+                    lastMessageRepo.deleteLastMessageId(chatId, uuid);
+                    execute(createDeleteMessage(chatId, messageId));
+                } catch (OfferExpiredException | NullPointerException ignored){}
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -421,14 +423,15 @@ public class TourBot extends TelegramWebhookBot {
                     .chatId(chatId)
                     .clientId(user.getId().toString())
                     .creationTime(LocalDateTime.now())
-                    .data(data.data().toString())
+                    .data(userData)
                     .lang(extractLocale(userData))
                     .status(true)
                     .build());
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY, userData);
+            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY,
+                    mapper.writeValueAsString(data.data()));
             cache.deleteByChatId(chatId);
         }
     }
