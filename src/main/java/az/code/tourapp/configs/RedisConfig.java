@@ -78,6 +78,12 @@ public class RedisConfig {
         return configRedisTemplate(factory, template);
     }
 
+    @Bean
+    public RedisTemplate<String, Integer> contactMessageTemplate(JedisConnectionFactory factory) {
+        RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
+        return configRedisTemplate(factory, template);
+    }
+
     @SuppressWarnings({"DuplicatedCode", "rawtypes"})
     private RedisTemplate configRedisTemplate(JedisConnectionFactory factory, RedisTemplate template) {
         template.setConnectionFactory(factory);
