@@ -180,7 +180,7 @@ public class TourBot extends TelegramWebhookBot {
                     Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
                     lastMessageRepo.deleteLastMessageId(chatId, uuid);
                     execute(createDeleteMessage(chatId, messageId));
-                } catch (OfferExpiredException ignored){}
+                } catch (OfferExpiredException | NullPointerException ignored){}
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -430,7 +430,8 @@ public class TourBot extends TelegramWebhookBot {
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY, userData);
+            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY,
+                    mapper.writeValueAsString(data.data()));
             cache.deleteByChatId(chatId);
         }
     }
