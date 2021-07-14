@@ -221,13 +221,15 @@ public class TourBot extends TelegramWebhookBot {
         return execute(sendPhoto).getMessageId().toString();
     }
 
-    private void handleContact(Message replyMessage, String username, Contact contact) {
+    private void handleContact(Message replyMessage, String username, Contact contact) throws TelegramApiException {
         Offer offer = offerRepo.getByMessageId(replyMessage.getChatId().toString(),
                 replyMessage.getMessageId().toString());
         if (offer != null) {
+            Locale locale = requestRepo.findRequestLang(offer.getUuid());
             userRepo.save(new BotUser(username, contact));
             rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
                     new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
+            sendInfoMessage(offer, locale);
         }
     }
 
@@ -235,8 +237,8 @@ public class TourBot extends TelegramWebhookBot {
         String chatId = replyToMessage.getChatId().toString();
         Integer messageId = replyToMessage.getMessageId();
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Request request = requestRepo.findByUuid(offer.getUuid());
-        SendMessage message = createRequestContactMessage(userMessage, messageId, offer, request.getLang());
+        Locale locale = requestRepo.findRequestLang(offer.getUuid());
+        SendMessage message = createRequestContactMessage(userMessage, messageId, offer, locale);
         offerRepo.save(offer.toBuilder()
                 .messageId(execute(message).getMessageId().toString())
                 .build());
@@ -375,8 +377,8 @@ public class TourBot extends TelegramWebhookBot {
     private void handleContactAnswer(String chatId, String text, User user) throws TelegramApiException {
         Integer messageId = contactRepo.findMessageId(chatId);
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Request request = requestRepo.findByUuid(offer.getUuid());
-        switch (extractKey(text, request.getLang())) {
+        Locale locale = requestRepo.findRequestLang(offer.getUuid());
+        switch (extractKey(text, locale)) {
             case "sendContact" -> {
                 Optional<BotUser> botUser = userRepo.findById(user.getId());
                 botUser.ifPresent(value -> rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
@@ -384,8 +386,13 @@ public class TourBot extends TelegramWebhookBot {
             }
             case "sendContactCancel" -> sendPreUserInfo(user, offer, rabbit);
         }
+        sendInfoMessage(offer, locale);
+    }
+
+    private void sendInfoMessage(Offer offer, Locale locale) throws TelegramApiException {
+        String chatId = offer.getChatId();
         execute(createCustomMessage(chatId,
-                String.format(getText(messages.get("agencyInformed"), request.getLang()), offer.getAgencyName())));
+                String.format(getText(messages.get("agencyInformed"), locale), offer.getAgencyName())));
         contactRepo.deleteMessageId(chatId);
     }
 

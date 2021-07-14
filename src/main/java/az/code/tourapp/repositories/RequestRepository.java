@@ -1,5 +1,6 @@
 package az.code.tourapp.repositories;
 
+import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.entities.Request;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,6 +19,12 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     @Cacheable("request")
     Request findByUuid(String uuid);
+
+    @Cacheable("requestLang")
+    @Query("SELECT request.lang " +
+            "FROM Request request " +
+            "WHERE request.uuid = :uuid")
+    Locale findRequestLang(String uuid);
 
     @Query("SELECT request FROM Request request " +
             "WHERE request.chatId = :chatId " +
