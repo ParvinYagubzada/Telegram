@@ -176,9 +176,11 @@ public class TourBot extends TelegramWebhookBot {
             if (request != null) {
                 String uuid = request.getUuid();
                 rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
-                Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
-                lastMessageRepo.deleteLastMessageId(chatId, uuid);
-                execute(createDeleteMessage(chatId, messageId));
+                try {
+                    Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
+                    lastMessageRepo.deleteLastMessageId(chatId, uuid);
+                    execute(createDeleteMessage(chatId, messageId));
+                } catch (OfferExpiredException ignored){}
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -421,7 +423,7 @@ public class TourBot extends TelegramWebhookBot {
                     .chatId(chatId)
                     .clientId(user.getId().toString())
                     .creationTime(LocalDateTime.now())
-                    .data(data.data().toString())
+                    .data(userData)
                     .lang(extractLocale(userData))
                     .status(true)
                     .build());
