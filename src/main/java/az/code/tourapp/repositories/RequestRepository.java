@@ -1,6 +1,8 @@
 package az.code.tourapp.repositories;
 
 import az.code.tourapp.models.entities.Request;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +16,7 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     Optional<Request> findByUuidAndStatusIsTrue(String uuid);
 
+    @Cacheable("request")
     Request findByUuid(String uuid);
 
     @Query("SELECT request FROM Request request " +
@@ -21,6 +24,7 @@ public interface RequestRepository extends JpaRepository<Request, String> {
             "AND request.status = true ")
     Request findUuidByChatId(String chatId);
 
+    @CacheEvict("request")
     @Transactional
     @Modifying
     @Query(nativeQuery = true, value =

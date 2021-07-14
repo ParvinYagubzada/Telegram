@@ -4,6 +4,8 @@ import az.code.tourapp.enums.Locale;
 import lombok.*;
 
 import javax.persistence.*;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
@@ -13,7 +15,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "requests")
-public class Request {
+public class Request implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 6529685098267757692L;
+
     @Id
     private String uuid;
     private String chatId;
@@ -23,4 +28,9 @@ public class Request {
     private String data;
     private Boolean status;
     private LocalDateTime creationTime;
+
+    @Override
+    public String toString() {
+        return uuid;
+    }
 }

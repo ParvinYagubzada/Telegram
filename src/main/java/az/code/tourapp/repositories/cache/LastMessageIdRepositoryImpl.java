@@ -1,6 +1,6 @@
 package az.code.tourapp.repositories.cache;
 
-import az.code.tourapp.exceptions.OfferExpiredException;
+import az.code.tourapp.exceptions.user.OfferExpiredException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
