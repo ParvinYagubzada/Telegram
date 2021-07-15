@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://192.168.0.100:5432/tour
-    username: postgres
-    password: 3262015Aze3262!
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   redis:
     url: ${REDIS_URL}
@@ -20,10 +20,10 @@ spring:
 
 telegram:
   bot:
-    token: 1807237865:AAGvhr1CW_yk5FEzfjgWNthALwHC_0yCX-8
-    username: CodeAcademyBot
-    domain: customtelegrambit.herokuapp.com
-    api: /api/v1/webhook
+    token: ${BOT_TOKEN}
+    username: ${BOT_NAME}
+    domain: ${APP_DOMAIN}
+    api: ${WEBHOOK_PATH}
     first-question-id: 1
     messages:
       stopMessage:
