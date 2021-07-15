@@ -9,6 +9,9 @@ spring:
     password: 3262015Aze3262!
     driver-class-name: org.postgresql.Driver
 
+  redis:
+    url: ${REDIS_URL}
+
   rabbitmq:
     host: ${AMQP_HOST}
     username: ${AMQP_USERNAME}

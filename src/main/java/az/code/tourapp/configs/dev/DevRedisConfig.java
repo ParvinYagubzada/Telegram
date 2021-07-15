@@ -5,8 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
@@ -22,14 +21,6 @@ import java.util.Map;
 public class DevRedisConfig {
 
     @Bean
-    public JedisConnectionFactory jedisConnectionFactory() {
-        RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
-        configuration.setHostName("localhost");
-        configuration.setPort(6379);
-        return new JedisConnectionFactory();
-    }
-
-    @Bean
     public RedisCacheConfiguration cacheConfiguration() {
         return RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofDays(14))
@@ -37,31 +28,31 @@ public class DevRedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, UserData> redisTemplate(JedisConnectionFactory factory) {
+    public RedisTemplate<String, UserData> redisTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, UserData> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
 
     @Bean
-    public RedisTemplate<String, Map<String, Integer>> userOfferTemplate(JedisConnectionFactory factory) {
+    public RedisTemplate<String, Map<String, Integer>> userOfferTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
 
     @Bean
-    public RedisTemplate<String, Map<String, Integer>> lastMessageTemplate(JedisConnectionFactory factory) {
+    public RedisTemplate<String, Map<String, Integer>> lastMessageTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
 
     @Bean
-    public RedisTemplate<String, Integer> contactMessageTemplate(JedisConnectionFactory factory) {
+    public RedisTemplate<String, Integer> contactMessageTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
 
     @SuppressWarnings({"DuplicatedCode", "rawtypes"})
-    private RedisTemplate configRedisTemplate(JedisConnectionFactory factory, RedisTemplate template) {
+    private RedisTemplate configRedisTemplate(LettuceConnectionFactory factory, RedisTemplate template) {
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
