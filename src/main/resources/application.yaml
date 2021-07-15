@@ -14,7 +14,7 @@ spring:
     username: ${AMQP_USERNAME}
     password: ${AMQP_PASSWORD}
     ssl:
-      enabled: true
+      enabled: false
 
   jpa:
     open-in-view: false
