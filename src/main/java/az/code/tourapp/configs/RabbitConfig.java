@@ -92,11 +92,6 @@ public class RabbitConfig {
         CachingConnectionFactory factory = new CachingConnectionFactory();
         String envRabbitUrl = System.getenv("CLOUDAMQP_URL");
         URI rabbitUri = new URI(envRabbitUrl);
-        System.out.println(rabbitUri.getHost());
-        System.out.println(rabbitUri.getUserInfo());
-        System.out.println(rabbitUri.getRawUserInfo());
-        System.out.println(rabbitUri.getPort());
-        System.out.println(rabbitUri.getAuthority());
         factory.setUri(rabbitUri.toString());
         return factory;
     }

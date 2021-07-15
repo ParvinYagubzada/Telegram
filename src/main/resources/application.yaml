@@ -9,13 +9,12 @@ spring:
     password: 3262015Aze3262!
     driver-class-name: org.postgresql.Driver
 
-#  rabbitmq:
-#    host: ${AMQP_HOST}
-#    port: ${AMQP_PORT}
-#    username: ${AMQP_USERNAME}
-#    password: ${AMQP_PASSWORD}
-#    ssl:
-#      enabled: true
+  rabbitmq:
+    host: ${AMQP_HOST}
+    username: ${AMQP_USERNAME}
+    password: ${AMQP_PASSWORD}
+    ssl:
+      enabled: true
 
   jpa:
     open-in-view: false
