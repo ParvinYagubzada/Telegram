@@ -1,6 +1,6 @@
 package az.code.tourapp.helpers;
 
-import az.code.tourapp.configs.dev.DevRabbitConfig;
+import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.Translatable;
@@ -50,7 +50,7 @@ public class BotHelper {
         contact.setFirstName(user.getFirstName());
         contact.setLastName(user.getLastName());
         contact.setUserId(user.getId());
-        rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+        rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                 new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), user.getUserName(), contact));
     }
 
