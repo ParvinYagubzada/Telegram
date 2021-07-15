@@ -87,14 +87,14 @@ public class RabbitConfig {
         return new Jackson2JsonMessageConverter();
     }
 
-    @Bean
-    public ConnectionFactory amqpConnectionFactory() throws URISyntaxException {
-        CachingConnectionFactory factory = new CachingConnectionFactory();
-        String envRabbitUrl = System.getenv("CLOUDAMQP_URL");
-        URI rabbitUri = new URI(envRabbitUrl);
-        factory.setUri(rabbitUri.toString());
-        return factory;
-    }
+//    @Bean
+//    public ConnectionFactory amqpConnectionFactory() throws URISyntaxException {
+//        CachingConnectionFactory factory = new CachingConnectionFactory();
+//        String envRabbitUrl = System.getenv("CLOUDAMQP_URL");
+//        URI rabbitUri = new URI(envRabbitUrl);
+//        factory.setUri(rabbitUri.toString());
+//        return factory;
+//    }
 
     @Bean
     public AmqpTemplate template(ConnectionFactory connectionFactory, MessageConverter converter) {
