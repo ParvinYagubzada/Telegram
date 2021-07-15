@@ -3,7 +3,6 @@ package az.code.tourapp.configs;
 import az.code.tourapp.models.UserData;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -15,7 +14,6 @@ import java.time.Duration;
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
-@Profile("!dev")
 @Configuration
 @EnableRedisRepositories
 public class RedisConfig {

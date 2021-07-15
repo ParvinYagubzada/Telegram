@@ -37,19 +37,19 @@ public class Question implements Translatable, Serializable {
     @OneToMany(mappedBy = "baseQuestion", fetch = FetchType.EAGER)
     private List<Action> actions;
 
-    public Question findNext(String actionText, Locale locale) {
+    public Action findNext(String actionText, Locale locale) {
         if (this.actions.size() != 1) {
             Optional<Action> find = this.actions.stream()
                     .filter(action -> BotHelper.getText(action, locale).equals(actionText))
                     .findFirst();
             if (find.isPresent())
-                return find.get().getNextQuestion();
+                return find.get();
             throw new IllegalOptionException();
         } else {
             String regex = this.actions.get(0).getText();
             Pattern pattern = Pattern.compile(regex);
             if (pattern.matcher(actionText).matches())
-                return this.actions.get(0).getNextQuestion();
+                return this.actions.get(0);
             throw new InputMismatchException();
         }
     }

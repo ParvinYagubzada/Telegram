@@ -35,7 +35,8 @@ public interface RequestRepository extends JpaRepository<Request, String> {
     @Transactional
     @Modifying
     @Query(nativeQuery = true, value =
-            "UPDATE requests SET status = FALSE " +
-                    "WHERE chat_id = :chatId")
+            "UPDATE requests " +
+            "SET status = FALSE " +
+            "WHERE chat_id = :chatId")
     void deactivate(String chatId);
 }

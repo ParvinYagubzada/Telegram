@@ -180,7 +180,8 @@ public class TourBot extends TelegramWebhookBot {
                     Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
                     lastMessageRepo.deleteLastMessageId(chatId, uuid);
                     execute(createDeleteMessage(chatId, messageId));
-                } catch (OfferExpiredException | NullPointerException ignored){}
+                } catch (OfferExpiredException | NullPointerException ignored) {
+                }
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -350,7 +351,6 @@ public class TourBot extends TelegramWebhookBot {
                 .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build();
     }
 
-    @SuppressWarnings("ConstantConditions")
     private void handleMessage(String chatId, String text, User user) throws TelegramApiException {
         if (contactRepo.containsKey(chatId)) {
             handleContactAnswer(chatId, text, user);
@@ -362,13 +362,15 @@ public class TourBot extends TelegramWebhookBot {
             return;
         }
         Question currentQuestion = data.currentQuestion();
-        if ((data = handleLanguage(data, text, chatId)).userLang() == null) return;
-        if (data.data() == null)
-            data.data(new HashMap<>());
-        data.data().put(currentQuestion.getFieldName(), text);
         try {
-            Question nextQuestion = currentQuestion.findNext(text, data.userLang());
-            handleNextQuestion(data, chatId, user, nextQuestion);
+            Action currentAction = currentQuestion.findNext(text, data.userLang());
+            String answer = currentAction.getType() == ActionType.BUTTON ? currentAction.getFieldName() : text;
+            if (data.userLang() == null) {
+                data.data(new HashMap<>());
+                data.userLang(Locale.valueOf(answer));
+            }
+            data.data().put(currentQuestion.getFieldName(), answer);
+            handleNextQuestion(data, chatId, user, currentAction.getNextQuestion());
         } catch (IllegalOptionException | InputMismatchException exception) {
             sendErrorMessage(exception, chatId);
         } catch (JsonProcessingException parseException) {
@@ -396,19 +398,6 @@ public class TourBot extends TelegramWebhookBot {
         execute(createCustomMessage(chatId,
                 String.format(getText(messages.get("agencyInformed"), locale), offer.getAgencyName())));
         contactRepo.deleteMessageId(chatId);
-    }
-
-    private UserData handleLanguage(UserData data, String text, String chatId) throws TelegramApiException {
-        if (data.userLang() == null) {
-            try {
-                data.userLang(Locale.valueOf(text));
-                return data;
-            } catch (Exception e) {
-                sendErrorMessage(new IllegalOptionException(), chatId);
-                return data;
-            }
-        }
-        return data;
     }
 
     private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException, JsonProcessingException {

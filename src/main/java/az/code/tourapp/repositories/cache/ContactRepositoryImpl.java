@@ -1,6 +1,5 @@
 package az.code.tourapp.repositories.cache;
 
-import az.code.tourapp.models.UserData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,7 +10,7 @@ import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
-public class ContactRepositoryImpl implements ContactRepository{
+public class ContactRepositoryImpl implements ContactRepository {
 
     private static final String KEY = "contactMessages";
 
