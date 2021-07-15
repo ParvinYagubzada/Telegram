@@ -12,6 +12,9 @@ spring:
   redis:
     url: ${REDIS_URL}
 
+  rabbitmq:
+    addresses: ${CLOUDAMQP_URL}
+
 #  rabbitmq:
 #    host: ${AMQP_HOST}
 #    username: ${AMQP_USERNAME}
