@@ -16,6 +16,7 @@ spring:
     host: ${AMQP_HOST}
     username: ${AMQP_USERNAME}
     password: ${AMQP_PASSWORD}
+    port: 5671
     ssl:
       enabled: false
 
