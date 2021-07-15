@@ -26,6 +26,8 @@ public class Action implements Translatable, Serializable {
     private String text;
     private String textAz;
     private String textRu;
+    private String fieldName;
+
     @Enumerated(EnumType.STRING)
     private ActionType type;
 

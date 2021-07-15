@@ -1,7 +1,7 @@
 package az.code.tourapp.bots;
 
 import az.code.tourapp.configs.BotConfig;
-import az.code.tourapp.configs.dev.DevRabbitConfig;
+import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
@@ -175,12 +175,13 @@ public class TourBot extends TelegramWebhookBot {
             Locale locale = null;
             if (request != null) {
                 String uuid = request.getUuid();
-                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
+                rabbit.convertAndSend(RabbitConfig.STOP_EXCHANGE, RabbitConfig.STOP_KEY, uuid);
                 try {
                     Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
                     lastMessageRepo.deleteLastMessageId(chatId, uuid);
                     execute(createDeleteMessage(chatId, messageId));
-                } catch (OfferExpiredException | NullPointerException ignored){}
+                } catch (OfferExpiredException | NullPointerException ignored) {
+                }
                 locale = request.getLang();
             }
             requestRepo.deactivate(chatId);
@@ -229,7 +230,7 @@ public class TourBot extends TelegramWebhookBot {
         if (offer != null) {
             Locale locale = requestRepo.findRequestLang(offer.getUuid());
             userRepo.save(new BotUser(username, contact));
-            rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+            rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                     new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
             sendInfoMessage(offer, locale);
         }
@@ -350,7 +351,6 @@ public class TourBot extends TelegramWebhookBot {
                 .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build();
     }
 
-    @SuppressWarnings("ConstantConditions")
     private void handleMessage(String chatId, String text, User user) throws TelegramApiException {
         if (contactRepo.containsKey(chatId)) {
             handleContactAnswer(chatId, text, user);
@@ -362,13 +362,15 @@ public class TourBot extends TelegramWebhookBot {
             return;
         }
         Question currentQuestion = data.currentQuestion();
-        if ((data = handleLanguage(data, text, chatId)).userLang() == null) return;
-        if (data.data() == null)
-            data.data(new HashMap<>());
-        data.data().put(currentQuestion.getFieldName(), text);
         try {
-            Question nextQuestion = currentQuestion.findNext(text, data.userLang());
-            handleNextQuestion(data, chatId, user, nextQuestion);
+            Action currentAction = currentQuestion.findNext(text, data.userLang());
+            String answer = currentAction.getType() == ActionType.BUTTON ? currentAction.getFieldName() : text;
+            if (data.userLang() == null) {
+                data.data(new HashMap<>());
+                data.userLang(Locale.valueOf(answer));
+            }
+            data.data().put(currentQuestion.getFieldName(), answer);
+            handleNextQuestion(data, chatId, user, currentAction.getNextQuestion());
         } catch (IllegalOptionException | InputMismatchException exception) {
             sendErrorMessage(exception, chatId);
         } catch (JsonProcessingException parseException) {
@@ -383,7 +385,7 @@ public class TourBot extends TelegramWebhookBot {
         switch (extractKey(text, locale)) {
             case "sendContact" -> {
                 Optional<BotUser> botUser = userRepo.findById(user.getId());
-                botUser.ifPresent(value -> rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+                botUser.ifPresent(value -> rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                         new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), value)));
             }
             case "sendContactCancel" -> sendPreUserInfo(user, offer, rabbit);
@@ -396,19 +398,6 @@ public class TourBot extends TelegramWebhookBot {
         execute(createCustomMessage(chatId,
                 String.format(getText(messages.get("agencyInformed"), locale), offer.getAgencyName())));
         contactRepo.deleteMessageId(chatId);
-    }
-
-    private UserData handleLanguage(UserData data, String text, String chatId) throws TelegramApiException {
-        if (data.userLang() == null) {
-            try {
-                data.userLang(Locale.valueOf(text));
-                return data;
-            } catch (Exception e) {
-                sendErrorMessage(new IllegalOptionException(), chatId);
-                return data;
-            }
-        }
-        return data;
     }
 
     private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException, JsonProcessingException {
@@ -430,7 +419,7 @@ public class TourBot extends TelegramWebhookBot {
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY,
+            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY,
                     mapper.writeValueAsString(data.data()));
             cache.deleteByChatId(chatId);
         }
