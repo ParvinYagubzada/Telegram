@@ -40,11 +40,7 @@ public class Question implements Translatable, Serializable {
     public Action findNext(String actionText, Locale locale) {
         if (this.actions.size() != 1) {
             Optional<Action> find = this.actions.stream()
-                    .filter(action -> {
-                        System.out.println(BotHelper.getText(action, locale));
-                        System.out.println(actionText);
-                        return BotHelper.getText(action, locale).equals(actionText);
-                    })
+                    .filter(action -> BotHelper.getText(action, locale).equals(actionText))
                     .findFirst();
             if (find.isPresent())
                 return find.get();
