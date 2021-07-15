@@ -1,7 +1,7 @@
 package az.code.tourapp.bots;
 
 import az.code.tourapp.configs.BotConfig;
-import az.code.tourapp.configs.dev.DevRabbitConfig;
+import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
@@ -175,7 +175,7 @@ public class TourBot extends TelegramWebhookBot {
             Locale locale = null;
             if (request != null) {
                 String uuid = request.getUuid();
-                rabbit.convertAndSend(DevRabbitConfig.STOP_EXCHANGE, DevRabbitConfig.STOP_KEY, uuid);
+                rabbit.convertAndSend(RabbitConfig.STOP_EXCHANGE, RabbitConfig.STOP_KEY, uuid);
                 try {
                     Integer messageId = lastMessageRepo.findLastMessageId(chatId, uuid);
                     lastMessageRepo.deleteLastMessageId(chatId, uuid);
@@ -229,7 +229,7 @@ public class TourBot extends TelegramWebhookBot {
         if (offer != null) {
             Locale locale = requestRepo.findRequestLang(offer.getUuid());
             userRepo.save(new BotUser(username, contact));
-            rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+            rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                     new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
             sendInfoMessage(offer, locale);
         }
@@ -383,7 +383,7 @@ public class TourBot extends TelegramWebhookBot {
         switch (extractKey(text, locale)) {
             case "sendContact" -> {
                 Optional<BotUser> botUser = userRepo.findById(user.getId());
-                botUser.ifPresent(value -> rabbit.convertAndSend(DevRabbitConfig.ACCEPTED_EXCHANGE, DevRabbitConfig.ACCEPTED_KEY,
+                botUser.ifPresent(value -> rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                         new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), value)));
             }
             case "sendContactCancel" -> sendPreUserInfo(user, offer, rabbit);
@@ -430,7 +430,7 @@ public class TourBot extends TelegramWebhookBot {
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(DevRabbitConfig.REQUEST_EXCHANGE, DevRabbitConfig.REQUEST_KEY,
+            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY,
                     mapper.writeValueAsString(data.data()));
             cache.deleteByChatId(chatId);
         }
