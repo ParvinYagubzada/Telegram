@@ -63,7 +63,6 @@ class BotHelperTest {
         }
         ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
                 .keyboard(keyboard)
-                .oneTimeKeyboard(true)
                 .resizeKeyboard(true)
                 .build();
         assertEquals(expected, BotHelper.createKeyboard(actions, locale));

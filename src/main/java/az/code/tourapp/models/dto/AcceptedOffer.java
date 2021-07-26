@@ -14,16 +14,16 @@ public class AcceptedOffer {
 
     String uuid;
     String agencyName;
-    String userName;
+    String username;
     String phoneNumber;
     String firstName;
     String lastName;
     String userId;
 
-    public AcceptedOffer(String uuid, String agencyName, String userName, Contact contact) {
+    public AcceptedOffer(String uuid, String agencyName, String username, Contact contact) {
         this.uuid = uuid;
         this.agencyName = agencyName;
-        this.userName = userName;
+        this.username = username;
         this.firstName = contact.getFirstName();
         this.lastName = contact.getLastName();
         this.userId = contact.getUserId().toString();
@@ -33,7 +33,7 @@ public class AcceptedOffer {
     public AcceptedOffer(String uuid, String agencyName, BotUser user) {
         this.uuid = uuid;
         this.agencyName = agencyName;
-        this.userName = user.getUserName();
+        this.username = user.getUserName();
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.userId = user.getUserId().toString();

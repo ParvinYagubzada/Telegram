@@ -16,13 +16,13 @@ import java.time.LocalDateTime;
 public class Offer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
-    String chatId;
-    String baseMessageId;
-    String messageId;
-    String uuid;
-    String photoUrl;
-    String agencyName;
+    private Long id;
+    private String chatId;
+    private String baseMessageId;
+    private String messageId;
+    private String uuid;
+    private String photoUrl;
+    private String agencyName;
     @CreationTimestamp
-    LocalDateTime timeStamp;
+    private LocalDateTime timeStamp;
 }

@@ -315,7 +315,13 @@ public class TourBot extends TelegramWebhookBot {
                 execute(createEditMessage(chatId, messageId, choice));
                 handleMessage(chatId, choice, null);
             } else {
-                execute(handleCalendarControls(chatId, locale, messageId, choice));
+                try {
+                    execute(handleCalendarControls(chatId, locale, messageId, choice));
+                } catch (TelegramApiException exception) {
+                    if (exception.getMessage().startsWith("Error editing message reply markup:")) {
+                        sendErrorMessage(new ButtonSpamException(), chatId);
+                    }
+                }
             }
         }
     }
@@ -419,8 +425,7 @@ public class TourBot extends TelegramWebhookBot {
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY,
-                    mapper.writeValueAsString(data.data()));
+            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, data.data());
             cache.deleteByChatId(chatId);
         }
     }

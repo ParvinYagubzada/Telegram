@@ -67,7 +67,6 @@ public class BotHelper {
         }
         return ReplyKeyboardMarkup.builder()
                 .keyboard(keyboard)
-                .oneTimeKeyboard(true)
                 .resizeKeyboard(true)
                 .build();
     }
