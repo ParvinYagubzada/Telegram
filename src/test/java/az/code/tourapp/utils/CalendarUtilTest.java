@@ -48,12 +48,16 @@ class CalendarUtilTest {
     private void createWeekNamesRow(Locale locale, List<List<InlineKeyboardButton>> keyboard) {
         List<InlineKeyboardButton> daysOfWeekRow = new ArrayList<>();
         String[] weekNames = new DateFormatSymbols(locale).getShortWeekdays();
-        for (int i = 1; i < weekNames.length; i++) {
+        for (int i = 2; i < weekNames.length; i++) {
             daysOfWeekRow.add(InlineKeyboardButton.builder()
                     .callbackData(IGNORE)
                     .text(weekNames[i])
                     .build());
         }
+        daysOfWeekRow.add(InlineKeyboardButton.builder()
+                .callbackData(IGNORE)
+                .text(weekNames[1])
+                .build());
         keyboard.add(daysOfWeekRow);
     }
 
@@ -63,29 +67,40 @@ class CalendarUtilTest {
         for (int i = 0; i < 5; i++) {
             if (i == 0) {
                 for (int j = 0; j < 7; j++) {
-                    if (j < 4) {
-                        row.add(InlineKeyboardButton.builder()
-                                .callbackData(IGNORE)
-                                .text(IGNORE_TEXT)
-                                .build());
+                    if (j < 3) {
+                        addIgnoreButton(row);
                     } else {
-                        row.add(InlineKeyboardButton.builder()
-                                .callbackData(format.print(new org.joda.time.LocalDate(2021, 7, day)))
-                                .text(Integer.toString(day++))
-                                .build());
+                        day = addNormalButton(row, day);
                     }
                 }
             } else {
                 for (int j = 0; j < 7; j++) {
-                    row.add(InlineKeyboardButton.builder()
-                            .callbackData(format.print(new org.joda.time.LocalDate(2021, 7, day)))
-                            .text(Integer.toString(day++))
-                            .build());
+                    if (i == 4 && j == 6) {
+                        addIgnoreButton(row);
+                    } else {
+                        day = addNormalButton(row, day);
+                    }
+                    
                 }
             }
             keyboard.add(row);
             row = new ArrayList<>();
         }
+    }
+
+    private int addNormalButton(List<InlineKeyboardButton> row, int day) {
+        row.add(InlineKeyboardButton.builder()
+                .callbackData(format.print(new org.joda.time.LocalDate(2021, 7, day)))
+                .text(Integer.toString(day++))
+                .build());
+        return day;
+    }
+
+    private void addIgnoreButton(List<InlineKeyboardButton> row) {
+        row.add(InlineKeyboardButton.builder()
+                .callbackData(IGNORE)
+                .text(IGNORE_TEXT)
+                .build());
     }
 
     private void createControlsRow(org.joda.time.LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
