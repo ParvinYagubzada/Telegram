@@ -37,16 +37,17 @@ public class CalendarUtil {
     private static void createWeekNamesRow(List<List<InlineKeyboardButton>> keyboard, Locale locale) {
         List<InlineKeyboardButton> daysOfWeekRow = new ArrayList<>();
         String[] weekNames = new DateFormatSymbols(locale).getShortWeekdays();
-        for (int i = 1; i < weekNames.length; i++) {
+        for (int i = 2; i < weekNames.length; i++) {
             daysOfWeekRow.add(createButton(IGNORE, weekNames[i]));
         }
+        daysOfWeekRow.add(createButton(IGNORE, weekNames[1]));
         keyboard.add(daysOfWeekRow);
     }
 
     private static void createDaysSection(LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         LocalDate firstDay = date.dayOfMonth().withMinimumValue();
-        int shift = firstDay.dayOfWeek().get();
-        shift = shift % 7 == 0 ? 0 : shift;
+
+        int shift = firstDay.dayOfWeek().get() - 1;
         int daysInMonth = firstDay.dayOfMonth().getMaximumValue();
         int rows = ((daysInMonth + shift) % 7 > 0 ? 1 : 0) + (daysInMonth + shift) / 7;
         for (int i = 0; i < rows; i++) {

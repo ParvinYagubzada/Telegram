@@ -6,6 +6,7 @@ import org.springframework.core.io.Resource;
 import java.io.InputStream;
 
 public interface FilesStorageService {
+
     void init();
 
     void save(InputStream file, String fileName);

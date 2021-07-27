@@ -2,21 +2,16 @@ server:
   port: 7000
 
 spring:
+  profiles:
+    active: test
+
   datasource:
-    url: jdbc:postgresql://192.168.0.100:5432/test
-#    url: jdbc:postgresql://localhost:5432/test
+    url: jdbc:postgresql://192.168.0.100:5432/tour_test
     username: postgres
     password: 3262015Aze3262!
-    driver-class-name: org.postgresql.Driver
-
-#    url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-#    username: sa
-#    password: sa
-#    driver-class-name: org.h2.Driver
 
   jpa:
     open-in-view: false
-#    show-sql: true
     hibernate:
       ddl-auto: create-drop
 

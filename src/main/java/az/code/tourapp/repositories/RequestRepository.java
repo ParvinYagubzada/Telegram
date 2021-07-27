@@ -22,13 +22,13 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     @Cacheable("requestLang")
     @Query("SELECT request.lang " +
-            "FROM Request request " +
-            "WHERE request.uuid = :uuid")
+           "FROM Request request " +
+           "WHERE request.uuid = :uuid")
     Locale findRequestLang(String uuid);
 
     @Query("SELECT request FROM Request request " +
-            "WHERE request.chatId = :chatId " +
-            "AND request.status = true ")
+           "WHERE request.chatId = :chatId " +
+           "AND request.status = true ")
     Request findUuidByChatId(String chatId);
 
     @CacheEvict("request")

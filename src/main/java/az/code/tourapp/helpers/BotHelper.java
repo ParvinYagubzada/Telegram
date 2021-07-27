@@ -4,10 +4,10 @@ import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.Translatable;
-import az.code.tourapp.models.dto.AcceptedOffer;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.models.entities.Offer;
 import az.code.tourapp.utils.CalendarUtil;
+import az.code.tourapp.utils.Mappers;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -45,13 +45,13 @@ public class BotHelper {
                 .build();
     }
 
-    public static void sendPreUserInfo(User user, Offer offer, RabbitTemplate rabbit) {
+    public static void sendPreUserInfo(User user, Offer offer, RabbitTemplate rabbit, Mappers mappers) {
         Contact contact = new Contact();
         contact.setFirstName(user.getFirstName());
         contact.setLastName(user.getLastName());
         contact.setUserId(user.getId());
         rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
-                new AcceptedOffer(offer.getUuid(), offer.getAgencyName(), user.getUserName(), contact));
+                mappers.contactToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), user.getUserName(), contact));
     }
 
     public static ReplyKeyboardMarkup createKeyboard(List<Action> actions, Locale locale) {
@@ -67,7 +67,6 @@ public class BotHelper {
         }
         return ReplyKeyboardMarkup.builder()
                 .keyboard(keyboard)
-                .oneTimeKeyboard(true)
                 .resizeKeyboard(true)
                 .build();
     }

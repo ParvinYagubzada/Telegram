@@ -7,6 +7,7 @@ import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
 import az.code.tourapp.repositories.cache.UserDataRepository;
 import az.code.tourapp.services.FilesStorageService;
+import az.code.tourapp.utils.Mappers;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -24,7 +25,8 @@ import java.util.Map;
 public class BotConfig {
 
     private final FilesStorageService store;
-    private final RabbitTemplate template;
+    private final RabbitTemplate rabbit;
+    private final Mappers mappers;
 
     //SQL Repos
     private final QuestionRepository questionRepo;
