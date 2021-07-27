@@ -1,14 +1,15 @@
 package az.code.tourapp.models.entities;
 
-import lombok.*;
-import org.telegram.telegrambots.meta.api.objects.Contact;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-@Getter
-@Setter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,12 +23,4 @@ public class BotUser {
     private String phoneNumber;
     private String firstName;
     private String lastName;
-
-    public BotUser(String userName, Contact contact) {
-        this.userName = userName;
-        this.firstName = contact.getFirstName();
-        this.lastName = contact.getLastName();
-        this.userId = contact.getUserId();
-        this.phoneNumber = contact.getPhoneNumber();
-    }
 }

@@ -10,13 +10,6 @@ spring:
     username: postgres
     password: 3262015Aze3262!
 
-#  data:
-#    redis:
-#      repositories:
-#        enabled: false
-#  session:
-#    store-type: none
-
   jpa:
     open-in-view: false
     hibernate:
