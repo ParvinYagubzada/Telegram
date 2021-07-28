@@ -3,6 +3,7 @@ package az.code.tourapp.models.entities;
 import az.code.tourapp.enums.Locale;
 import lombok.*;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import java.io.Serial;
@@ -30,7 +31,9 @@ public class Request implements Serializable {
     private String data;
     private boolean active;
     private boolean accepted;
+    @CreationTimestamp
     private LocalDateTime creationTime;
+    private LocalDateTime expirationTime;
 
     @Override
     public String toString() {

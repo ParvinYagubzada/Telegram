@@ -7,7 +7,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -61,10 +60,5 @@ public class LastMessageIdRepositoryImpl implements LastMessageIdRepository {
         hashOperations.putIfAbsent(KEY, chatId, new HashMap<>());
         Map<String, Integer> userLastMessages = hashOperations.get(KEY, chatId);
         return Objects.requireNonNull(userLastMessages).containsKey(uuid);
-    }
-
-    @Override
-    public void setExpire(Duration timeout) {
-        template.expire(KEY, timeout);
     }
 }

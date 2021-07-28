@@ -1,7 +1,5 @@
 package az.code.tourapp.repositories.cache;
 
-import java.time.Duration;
-
 public interface ContactRepository {
 
     Integer findMessageId(String chatId);
@@ -11,6 +9,4 @@ public interface ContactRepository {
     void deleteMessageId(String chatId);
 
     boolean containsKey(String chatId);
-
-    void setExpire(Duration timeout);
 }

@@ -22,4 +22,6 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
             "WHERE offer.chatId = :chatId " +
             "AND (offer.baseMessageId = :messageId OR offer.messageId = :messageId)")
     Offer getByMessageId(String chatId, String messageId);
+
+    boolean existsByUuid(String uuid);
 }

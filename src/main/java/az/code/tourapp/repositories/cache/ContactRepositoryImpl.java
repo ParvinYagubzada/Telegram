@@ -6,7 +6,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
@@ -41,10 +40,5 @@ public class ContactRepositoryImpl implements ContactRepository {
     @Override
     public boolean containsKey(String chatId) {
         return hashOperations.hasKey(KEY, chatId);
-    }
-
-    @Override
-    public void setExpire(Duration timeout) {
-        template.expire(KEY, timeout);
     }
 }

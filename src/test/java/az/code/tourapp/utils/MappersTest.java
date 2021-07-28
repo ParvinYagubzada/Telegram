@@ -76,6 +76,7 @@ class MappersTest {
             @Value("#{botConfig.domain}") String domain,
             @Value("#{botConfig.api}") String api,
             @Value("#{botConfig.firstQuestionId}") Long firstQuestionId,
+            @Value("#{botConfig.expirationDays}") Integer expirationDays,
             @Value("#{botConfig.messages}") Map<String, CustomMessage> messages
     ) throws TelegramApiException, InterruptedException {
         TourBot expected = TourBot.builder()
@@ -84,7 +85,7 @@ class MappersTest {
                 .userRepo(userRepo).userDataRepo(userDataRepo).lastMessageRepo(lastMessageRepo)
                 .offerCountRepo(offerCountRepo).contactRepo(contactRepo)
                 .token(token).username(username).domain(domain)
-                .api(api).firstQuestionId(firstQuestionId).messages(messages)
+                .api(api).firstQuestionId(firstQuestionId).expirationDays(expirationDays).messages(messages)
                 .build();
 
         Thread.sleep(1000);

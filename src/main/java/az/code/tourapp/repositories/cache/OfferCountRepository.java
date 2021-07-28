@@ -1,7 +1,5 @@
 package az.code.tourapp.repositories.cache;
 
-import java.time.Duration;
-
 public interface OfferCountRepository {
 
     Integer findOfferCount(String chatId, String uuid);
@@ -13,6 +11,4 @@ public interface OfferCountRepository {
     void deleteOfferCount(String chatId, String uuid);
 
     boolean containsKey(String chatId, String uuid);
-
-    void setExpire(Duration timeout);
 }

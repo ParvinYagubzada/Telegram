@@ -1,6 +1,7 @@
 package az.code.tourapp.configs;
 
 import az.code.tourapp.models.UserData;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -19,10 +20,9 @@ import java.util.Map;
 public class RedisConfig {
 
     @Bean
-    public RedisCacheConfiguration cacheConfiguration() {
+    public RedisCacheConfiguration cacheConfiguration(@Value("${telegram.bot.expiration-days}") Integer days) {
         return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofDays(14))
-                .disableCachingNullValues();
+                .entryTtl(Duration.ofDays(days + 1));
     }
 
     @Bean

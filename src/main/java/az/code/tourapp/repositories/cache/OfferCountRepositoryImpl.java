@@ -6,7 +6,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -77,10 +76,5 @@ public class OfferCountRepositoryImpl implements OfferCountRepository {
         }
         hashOperations.put(KEY, chatId, new HashMap<>());
         return false;
-    }
-
-    @Override
-    public void setExpire(Duration timeout) {
-        template.expire(KEY, timeout);
     }
 }
