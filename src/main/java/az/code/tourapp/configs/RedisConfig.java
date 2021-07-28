@@ -32,13 +32,13 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Map<String, Integer>> userOfferTemplate(LettuceConnectionFactory factory) {
+    public RedisTemplate<String, Integer> userOfferTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
 
     @Bean
-    public RedisTemplate<String, Map<String, Integer>> lastMessageTemplate(LettuceConnectionFactory factory) {
+    public RedisTemplate<String, Integer> lastMessageTemplate(LettuceConnectionFactory factory) {
         RedisTemplate<String, Map<String, Integer>> template = new RedisTemplate<>();
         return configRedisTemplate(factory, template);
     }
