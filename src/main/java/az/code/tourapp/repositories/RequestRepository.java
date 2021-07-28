@@ -1,6 +1,5 @@
 package az.code.tourapp.repositories;
 
-import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.entities.Request;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -13,22 +12,16 @@ import java.util.Optional;
 
 public interface RequestRepository extends JpaRepository<Request, String> {
 
-    Boolean existsAllByChatIdAndStatusIsTrue(String chatId);
+    Boolean existsAllByChatIdAndActiveIsTrue(String chatId);
 
-    Optional<Request> findByUuidAndStatusIsTrue(String uuid);
+    Optional<Request> findByUuidAndActiveIsTrue(String uuid);
 
     @Cacheable("request")
     Request findByUuid(String uuid);
 
-    @Cacheable("requestLang")
-    @Query("SELECT request.lang " +
-           "FROM Request request " +
-           "WHERE request.uuid = :uuid")
-    Locale findRequestLang(String uuid);
-
     @Query("SELECT request FROM Request request " +
            "WHERE request.chatId = :chatId " +
-           "AND request.status = true ")
+           "AND request.active = true ")
     Request findUuidByChatId(String chatId);
 
     @CacheEvict("request")
@@ -36,7 +29,11 @@ public interface RequestRepository extends JpaRepository<Request, String> {
     @Modifying
     @Query(nativeQuery = true, value =
             "UPDATE requests " +
-            "SET status = FALSE " +
+            "SET active = FALSE " +
             "WHERE chat_id = :chatId")
     void deactivate(String chatId);
+
+    @CacheEvict("request")
+    @Override
+    <S extends Request> S save(S s);
 }

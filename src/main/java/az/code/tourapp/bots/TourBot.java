@@ -61,6 +61,7 @@ public class TourBot extends TelegramWebhookBot {
 
     public static final Logger logger = LoggerFactory.getLogger(TourBot.class);
     public static final String OFFER_QUEUE = "offerQueue";
+    public static final String EXPIRATION_QUEUE = "expirationQueue";
     public static final String IGNORE = "ignore";
 
     private FilesStorageService store;
@@ -136,7 +137,7 @@ public class TourBot extends TelegramWebhookBot {
     @SneakyThrows
     public void interrogate(Update update) {
         String chatId = update.getMessage().getChatId().toString();
-        if (requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) || userDataRepo.findByChatId(chatId) != null) {
+        if (requestRepo.existsAllByChatIdAndActiveIsTrue(chatId) || userDataRepo.findByChatId(chatId) != null) {
             sendErrorMessage(new AlreadyHaveSessionException(), chatId);
             return;
         }
@@ -149,7 +150,7 @@ public class TourBot extends TelegramWebhookBot {
     @SneakyThrows
     public void stop(Update update) {
         String chatId = update.getMessage().getChatId().toString();
-        if (!requestRepo.existsAllByChatIdAndStatusIsTrue(chatId) && userDataRepo.findByChatId(chatId) == null) {
+        if (!requestRepo.existsAllByChatIdAndActiveIsTrue(chatId) && userDataRepo.findByChatId(chatId) == null) {
             sendErrorMessage(new NoSuchSessionException(), chatId);
         } else {
             userDataRepo.deleteByChatId(chatId);
@@ -172,10 +173,10 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     @RabbitListener(queues = OFFER_QUEUE)
-    public void receiveResponse(RawOffer offer) throws TelegramApiException {
+    private void receiveOffer(RawOffer offer) throws TelegramApiException {
         String uuid = offer.getUuid();
         String fileName = UUID.randomUUID().toString();
-        Request request = requestRepo.findByUuidAndStatusIsTrue(uuid).orElse(null);
+        Request request = requestRepo.findByUuidAndActiveIsTrue(uuid).orElse(null);
         if (request == null) return;
         String chatId = request.getChatId();
         store.save(new ByteArrayInputStream(offer.getData()), fileName);
@@ -210,11 +211,13 @@ public class TourBot extends TelegramWebhookBot {
         Offer offer = offerRepo.getByMessageId(replyMessage.getChatId().toString(),
                 replyMessage.getMessageId().toString());
         if (offer != null) {
-            Locale locale = requestRepo.findRequestLang(offer.getUuid());
+            Request request = requestRepo.findByUuid(offer.getUuid());
+            Locale locale = request.getLang();
             userRepo.save(mappers.contactToBotUser(username, contact));
             rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                     mappers.contactToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
             sendInfoMessage(offer, locale);
+            requestRepo.save(request.setAccepted(true));
         }
     }
 
@@ -222,7 +225,12 @@ public class TourBot extends TelegramWebhookBot {
         String chatId = replyToMessage.getChatId().toString();
         Integer messageId = replyToMessage.getMessageId();
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Locale locale = requestRepo.findRequestLang(offer.getUuid());
+        Request request = requestRepo.findByUuid(offer.getUuid());
+        if (request.isAccepted()) {
+            sendErrorMessage(new MultipleAcceptanceException(), chatId);
+            return;
+        }
+        Locale locale = request.getLang();
         SendMessage message = createRequestContactMessage(userMessage, messageId, offer, locale);
         offerRepo.save(offer.toBuilder()
                 .messageId(execute(message).getMessageId().toString())
@@ -318,7 +326,7 @@ public class TourBot extends TelegramWebhookBot {
                 execute(editLoadMore(chatId, uuid, lastMessageRepo.findLastMessageId(chatId, uuid),
                         request.getLang(), count));
             }
-        } else if (!request.getStatus()) {
+        } else if (!request.isActive()) {
             lastMessageRepo.deleteLastMessageId(chatId, uuid);
             offerCountRepo.deleteOfferCount(chatId, uuid);
         }
@@ -369,16 +377,23 @@ public class TourBot extends TelegramWebhookBot {
     private void handleContactAnswer(String chatId, String text, User user) throws TelegramApiException {
         Integer messageId = contactRepo.findMessageId(chatId);
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Locale locale = requestRepo.findRequestLang(offer.getUuid());
+        Request request = requestRepo.findByUuid(offer.getUuid());
+        Locale locale = request.getLang();
         switch (extractKey(text, locale)) {
             case "sendContact" -> {
                 Optional<BotUser> botUser = userRepo.findById(user.getId());
                 botUser.ifPresent(value -> rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
                         mappers.botUserToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), value)));
+                sendInfoMessage(offer, locale);
+                requestRepo.save(request.setAccepted(true));
             }
-            case "sendContactCancel" -> sendPreUserInfo(user, offer, rabbit, mappers);
+            case "sendContactCancel" -> {
+                sendPreUserInfo(user, offer, rabbit, mappers);
+                sendInfoMessage(offer, locale);
+                requestRepo.save(request.setAccepted(true));
+            }
+            default -> sendErrorMessage(new IllegalOptionException(), chatId);
         }
-        sendInfoMessage(offer, locale);
     }
 
     private void sendInfoMessage(Offer offer, Locale locale) throws TelegramApiException {
@@ -402,7 +417,8 @@ public class TourBot extends TelegramWebhookBot {
                     .creationTime(LocalDateTime.now())
                     .data(userData)
                     .lang(extractLocale(userData))
-                    .status(true)
+                    .active(true)
+                    .accepted(false)
                     .build());
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
