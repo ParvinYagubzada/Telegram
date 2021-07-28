@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.bots.TelegramWebhookBot;
@@ -203,11 +204,15 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void deleteLoadMoreButton(String chatId) throws TelegramApiException {
-        try {
-            Integer messageId = lastMessageRepo.findLastMessageId(chatId);
+        Integer messageId = lastMessageRepo.findLastMessageId(chatId);
+        if (messageId != null) {
             lastMessageRepo.deleteLastMessageId(chatId);
+            List<Offer> offers = offerRepo.findAll(
+                    Example.of(Offer.builder().chatId(chatId).baseMessageId(null).build())
+            );
+            offerRepo.deleteAll(offers);
+            store.deleteAll(offers);
             execute(createDeleteMessage(chatId, messageId));
-        } catch (OfferExpiredException | NullPointerException ignored) {
         }
     }
 
@@ -310,11 +315,7 @@ public class TourBot extends TelegramWebhookBot {
                     return offer.toBuilder().baseMessageId(messageId).build();
                 })
                 .collect(Collectors.toList()));
-        try {
-            execute(createDeleteMessage(chatId, lastMessageRepo.findLastMessageId(chatId)));
-        } catch (OfferExpiredException exc) {
-            sendErrorMessage(exc, chatId);
-        }
+        execute(createDeleteMessage(chatId, lastMessageRepo.findLastMessageId(chatId)));
         store.deleteAll(list);
         lastMessageRepo.deleteLastMessageId(chatId);
         handleMoreOffers(chatId, uuid, request);
