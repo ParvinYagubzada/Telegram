@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static az.code.tourapp.TourAppApplicationTests.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BotHelperTest {
@@ -33,28 +34,25 @@ class BotHelperTest {
     @Test
     void handleCalendarControls() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        String chatId = "12345", choice = "<" + LocalDate.now().format(formatter);
-        Locale locale = Locale.EN;
-        Integer messageId = 123456;
+        String choice = "<" + LocalDate.now().format(formatter);
         LocalDate newDate = LocalDate.parse(choice.substring(1), formatter).minusMonths(1);
         EditMessageReplyMarkup expected = EditMessageReplyMarkup.builder()
-                .chatId(chatId)
-                .messageId(messageId)
-                .replyMarkup(CalendarUtil.createCalendar(newDate, locale.getJavaLocale()))
+                .chatId(CHAT_ID)
+                .messageId(MESSAGE_ID)
+                .replyMarkup(CalendarUtil.createCalendar(newDate, LOCALE.getJavaLocale()))
                 .build();
-        assertEquals(expected, BotHelper.handleCalendarControls(chatId, locale, messageId, choice));
+        assertEquals(expected, BotHelper.handleCalendarControls(CHAT_ID, LOCALE, MESSAGE_ID, choice));
     }
 
     @Test
     void createKeyboard() {
-        Locale locale = Locale.EN;
         List<Action> actions = IntStream.range(1, 10)
                 .mapToObj(value -> Action.builder().text("This is test action no:" + value).build())
                 .collect(Collectors.toList());
         List<KeyboardRow> keyboard = new ArrayList<>();
         KeyboardRow row = new KeyboardRow();
         for (int i = 0; i < actions.size(); i++) {
-            String buttonText = BotHelper.getText(actions.get(i), locale);
+            String buttonText = BotHelper.getText(actions.get(i), LOCALE);
             row.add(buttonText);
             if ((i + 1) % 2 == 0 || i + 1 == actions.size()) {
                 keyboard.add(row);
@@ -65,27 +63,25 @@ class BotHelperTest {
                 .keyboard(keyboard)
                 .resizeKeyboard(true)
                 .build();
-        assertEquals(expected, BotHelper.createKeyboard(actions, locale));
+        assertEquals(expected, BotHelper.createKeyboard(actions, LOCALE));
     }
 
     @Test
     void createSingleButtonKeyboard() {
-        String uuid = "12345", text = "123456";
         InlineKeyboardMarkup expected = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> row = new ArrayList<>();
         List<InlineKeyboardButton> sub = new ArrayList<>();
         sub.add(InlineKeyboardButton.builder()
-                .callbackData("loadMore&" + uuid)
-                .text(text)
+                .callbackData("loadMore&" + UUID)
+                .text(TEST_STRING)
                 .build());
         row.add(sub);
         expected.setKeyboard(row);
-        assertEquals(expected, BotHelper.createSingleButtonKeyboard(uuid, text));
+        assertEquals(expected, BotHelper.createSingleButtonKeyboard(UUID, TEST_STRING));
     }
 
     @Test
     void createRequestContactKeyboard() {
-        Locale locale = Locale.EN;
         CustomMessage message = CustomMessage.builder()
                 .text(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
                 .build();
@@ -93,12 +89,12 @@ class BotHelperTest {
         KeyboardRow row = new KeyboardRow();
         row.add(KeyboardButton.builder()
                 .requestContact(true)
-                .text(BotHelper.getText(message, locale))
+                .text(BotHelper.getText(message, LOCALE))
                 .build());
         keyboard.add(row);
         row = new KeyboardRow();
         row.add(KeyboardButton.builder()
-                .text(BotHelper.getText(message, locale))
+                .text(BotHelper.getText(message, LOCALE))
                 .build());
         keyboard.add(row);
         ReplyKeyboardMarkup expected = ReplyKeyboardMarkup.builder()
@@ -106,43 +102,38 @@ class BotHelperTest {
                 .resizeKeyboard(true)
                 .oneTimeKeyboard(true)
                 .build();
-        Pair<String, ButtonType> first = Pair.of(BotHelper.getText(message, locale), ButtonType.CONTACT);
-        Pair<String, ButtonType> second = Pair.of(BotHelper.getText(message, locale), ButtonType.DEFAULT);
+        Pair<String, ButtonType> first = Pair.of(BotHelper.getText(message, LOCALE), ButtonType.CONTACT);
+        Pair<String, ButtonType> second = Pair.of(BotHelper.getText(message, LOCALE), ButtonType.DEFAULT);
         assertEquals(expected, BotHelper.createRequestContactKeyboard(first, second));
     }
 
     @Test
     void createEditMessage() {
-        String chatId = "12345", text = "123456";
-        Integer messageId = 123456;
         EditMessageText expected = EditMessageText.builder()
-                .chatId(chatId)
-                .messageId(messageId)
-                .text(text)
+                .chatId(CHAT_ID)
+                .messageId(MESSAGE_ID)
+                .text(TEST_STRING)
                 .build();
-        assertEquals(expected, BotHelper.createEditMessage(chatId, messageId, text));
+        assertEquals(expected, BotHelper.createEditMessage(CHAT_ID, MESSAGE_ID, TEST_STRING));
     }
 
     @Test
     void createDeleteMessage() {
-        String chatId = "12345";
-        Integer messageId = 12345;
         DeleteMessage expected = DeleteMessage.builder()
-                .chatId(chatId)
-                .messageId(messageId)
+                .chatId(CHAT_ID)
+                .messageId(MESSAGE_ID)
                 .build();
-        assertEquals(expected, BotHelper.createDeleteMessage(chatId, messageId));
+        assertEquals(expected, BotHelper.createDeleteMessage(CHAT_ID, MESSAGE_ID));
     }
 
     @Test
     void createCustomMessage() {
-        String chatId = "12345", myMessage = "test";
         SendMessage expected = SendMessage.builder()
-                .chatId(chatId)
+                .chatId(CHAT_ID)
                 .replyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build())
-                .text(myMessage)
+                .text(TEST_STRING)
                 .build();
-        assertEquals(expected, BotHelper.createCustomMessage(chatId, myMessage));
+        assertEquals(expected, BotHelper.createCustomMessage(CHAT_ID, TEST_STRING));
     }
 
     @SuppressWarnings("SpellCheckingInspection")
@@ -154,9 +145,7 @@ class BotHelperTest {
 
     @Test
     void getText() {
-        String expected = "test";
-        Translatable entry = CustomMessage.builder().text("test").build();
-        Locale locale = Locale.EN;
-        assertEquals(expected, BotHelper.getText(entry, locale));
+        Translatable entry = CustomMessage.builder().text(TEST_STRING).build();
+        assertEquals(TEST_STRING, BotHelper.getText(entry, LOCALE));
     }
 }

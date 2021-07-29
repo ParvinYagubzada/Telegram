@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CalendarUtilTest {
 
-
     @Test
     void createCalendar() {
         Locale locale = az.code.tourapp.enums.Locale.EN.getJavaLocale();

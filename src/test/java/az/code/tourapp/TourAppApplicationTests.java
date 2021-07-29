@@ -1,5 +1,6 @@
 package az.code.tourapp;
 
+import az.code.tourapp.enums.Locale;
 import az.code.tourapp.repositories.cache.ContactRepository;
 import az.code.tourapp.repositories.cache.LastMessageIdRepository;
 import az.code.tourapp.repositories.cache.OfferCountRepository;
@@ -21,6 +22,10 @@ import org.springframework.test.context.ActiveProfiles;
         @MockBean(ContactRepository.class),
 })
 public class TourAppApplicationTests {
+
+    public static final String CHAT_ID = "12345";
+    public static final Integer MESSAGE_ID = 12345;
+    public static final Locale LOCALE = Locale.EN;
 
     public static final String TEST_NAME = "John";
     public static final String TEST_STRING = "test";
