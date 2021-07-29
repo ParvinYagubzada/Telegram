@@ -12,14 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static az.code.tourapp.utils.CalendarUtil.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CalendarUtilTest {
 
-    public static final String IGNORE = "ignore";
-    public static final String IGNORE_TEXT = " ";
-    public static final DateTimeFormatter format = DateTimeFormat.forPattern("dd.MM.yyyy");
-    public static final DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy");
 
     @Test
     void createCalendar() {

@@ -8,8 +8,10 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
+@Profile("!no-rabbit")
 public class RabbitConfig {
 
     public static final String REQUEST_QUEUE = "requestQueue";

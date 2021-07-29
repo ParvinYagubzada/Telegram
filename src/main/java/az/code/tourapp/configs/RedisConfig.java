@@ -4,6 +4,7 @@ import az.code.tourapp.models.UserData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @SuppressWarnings("unchecked")
 @Configuration
+@Profile("!no-redis")
 @EnableRedisRepositories
 public class RedisConfig {
 

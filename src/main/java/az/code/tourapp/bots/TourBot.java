@@ -50,6 +50,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static az.code.tourapp.helpers.BotHelper.*;
+import static az.code.tourapp.utils.CalendarUtil.IGNORE;
 
 @Setter
 @Builder
@@ -62,7 +63,6 @@ public class TourBot extends TelegramWebhookBot {
     public static final Logger logger = LoggerFactory.getLogger(TourBot.class);
     public static final String OFFER_QUEUE = "offerQueue";
     public static final String EXPIRATION_QUEUE = "expirationQueue";
-    public static final String IGNORE = "ignore";
 
     private FilesStorageService store;
     private RabbitTemplate rabbit;

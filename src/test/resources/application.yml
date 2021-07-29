@@ -3,12 +3,20 @@ server:
 
 spring:
   profiles:
-    active: test
+    active:
+      - test
+      - no-redis
+      - no-rabbit
+
+  autoconfigure:
+    exclude:
+    - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+    - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
   datasource:
-    url: jdbc:postgresql://192.168.0.100:5432/tour_test
-    username: postgres
-    password: 3262015Aze3262!
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     open-in-view: false
@@ -17,6 +25,12 @@ spring:
 
 telegram:
   bot:
+    token: ${BOT_TOKEN}
+    username: ${BOT_NAME}
+    domain: ${APP_DOMAIN}
+    api: ${WEBHOOK_PATH}
+    first-question-id: 1
+    expiration-days: 1
     messages:
       stopMessage:
         context: Your active request cancelled!
