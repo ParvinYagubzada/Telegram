@@ -22,7 +22,7 @@ public class Mappers {
 
     public BotUser contactToBotUser(String username, Contact contact) {
         BotUser user = mapper.map(contact, BotUser.class);
-        user.setUserName(username);
+        user.setUsername(username);
         return user;
     }
 

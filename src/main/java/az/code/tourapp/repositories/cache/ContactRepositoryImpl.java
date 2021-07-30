@@ -1,15 +1,13 @@
 package az.code.tourapp.repositories.cache;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 
 @Repository
-@RequiredArgsConstructor
 public class ContactRepositoryImpl implements ContactRepository {
 
     private static final String KEY = "contactMessages";
@@ -17,6 +15,10 @@ public class ContactRepositoryImpl implements ContactRepository {
     private final RedisTemplate<String, Integer> template;
 
     private HashOperations<String, String, Integer> hashOperations;
+
+    public ContactRepositoryImpl(@Qualifier("contactMessageTemplate") RedisTemplate<String, Integer> template) {
+        this.template = template;
+    }
 
     @PostConstruct
     private void init() {
@@ -41,10 +43,5 @@ public class ContactRepositoryImpl implements ContactRepository {
     @Override
     public boolean containsKey(String chatId) {
         return hashOperations.hasKey(KEY, chatId);
-    }
-
-    @Override
-    public void setExpire(Duration timeout) {
-        template.expire(KEY, timeout);
     }
 }

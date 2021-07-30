@@ -25,7 +25,12 @@ telegram:
     domain: ${APP_DOMAIN}
     api: ${WEBHOOK_PATH}
     first-question-id: 1
+    expiration-days: 1
     messages:
+      expirationInfoMessage:
+        text: You have ${telegram.bot.expiration-days} days to accept the offers.
+        textAz: Sizin təklifləri qəbul etmək üçün ${telegram.bot.expiration-days} gün vaxtınız var.
+        textRu: У вас есть ${telegram.bot.expiration-days} дня, чтобы принять предложения.
       stopMessage:
         text: Your active request cancelled!
         textAz: Sizin aktiv sorğunuz dayandırıldı.

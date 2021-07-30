@@ -1,16 +1,12 @@
 package az.code.tourapp.repositories.cache;
 
-import java.time.Duration;
-
 public interface LastMessageIdRepository {
 
-    Integer findLastMessageId(String chatId, String uuid);
+    Integer findLastMessageId(String chatId);
 
-    void saveLastMessageId(String chatId, String uuid, Integer messageId);
+    void saveLastMessageId(String chatId, Integer messageId);
 
-    void deleteLastMessageId(String chatId, String uuid);
+    void deleteLastMessageId(String chatId);
 
-    boolean containsKey(String chatId, String uuid);
-
-    void setExpire(Duration timeout);
+    boolean containsKey(String chatId);
 }

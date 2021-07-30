@@ -46,6 +46,7 @@ public class BotConfig {
     private String domain;
     private String api;
     private Long firstQuestionId;
+    private Integer expirationDays;
 
     private Map<String, CustomMessage> messages;
 }

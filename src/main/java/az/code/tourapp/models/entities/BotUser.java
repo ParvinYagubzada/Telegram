@@ -19,7 +19,7 @@ public class BotUser {
 
     @Id
     private Long userId;
-    private String userName;
+    private String username;
     private String phoneNumber;
     private String firstName;
     private String lastName;

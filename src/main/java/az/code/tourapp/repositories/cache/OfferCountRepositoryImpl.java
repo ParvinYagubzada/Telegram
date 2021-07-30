@@ -6,21 +6,17 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
 @Repository
 public class OfferCountRepositoryImpl implements OfferCountRepository {
 
     private static final String KEY = "offerCount";
 
-    private final RedisTemplate<String, Map<String, Integer>> template;
+    private final RedisTemplate<String, Integer> template;
 
-    private HashOperations<String, String, Map<String, Integer>> hashOperations;
+    private HashOperations<String, String, Integer> hashOperations;
 
-    public OfferCountRepositoryImpl(@Qualifier("userOfferTemplate") RedisTemplate<String, Map<String, Integer>> template) {
+    public OfferCountRepositoryImpl(@Qualifier("userOfferTemplate") RedisTemplate<String, Integer> template) {
         this.template = template;
     }
 
@@ -30,57 +26,27 @@ public class OfferCountRepositoryImpl implements OfferCountRepository {
     }
 
     @Override
-    public Integer findOfferCount(String chatId, String uuid) {
-        Map<String, Integer> userOfferCounts = hashOperations.get(KEY, chatId);
-        if (userOfferCounts != null) {
-            return userOfferCounts.get(uuid);
+    public Integer findOfferCount(String chatId) {
+        return hashOperations.get(KEY, chatId);
+    }
+
+    @Override
+    public void incrementOfferCount(String chatId) {
+        Integer current = hashOperations.get(KEY, chatId);
+        int value = 1;
+        if (current != null) {
+            value = current + 1;
         }
-        return null;
+        hashOperations.put(KEY, chatId, value);
     }
 
     @Override
-    public Integer incrementOfferCount(String chatId, String uuid) {
-        Map<String, Integer> userOfferCounts = hashOperations.get(KEY, chatId);
-        if (userOfferCounts != null) {
-            Integer current = userOfferCounts.get(uuid);
-            if (current != null) {
-                current++;
-                userOfferCounts.put(uuid, current);
-                hashOperations.put(KEY, chatId, userOfferCounts);
-            }
-            return current;
-        }
-        return null;
+    public void deleteOfferCount(String chatId) {
+        hashOperations.delete(KEY, chatId);
     }
 
     @Override
-    public void saveOfferCount(String chatId, String uuid, Integer offerCount) {
-        hashOperations.putIfAbsent(KEY, chatId, new HashMap<>());
-        Map<String, Integer> userOfferCounts = hashOperations.get(KEY, chatId);
-        Objects.requireNonNull(userOfferCounts).put(uuid, offerCount);
-        hashOperations.put(KEY, chatId, userOfferCounts);
-    }
-
-    @Override
-    public void deleteOfferCount(String chatId, String uuid) {
-        hashOperations.putIfAbsent(KEY, chatId, new HashMap<>());
-        Map<String, Integer> userLastMessages = hashOperations.get(KEY, chatId);
-        Objects.requireNonNull(userLastMessages).remove(uuid);
-        hashOperations.put(KEY, chatId, userLastMessages);
-    }
-
-    @Override
-    public boolean containsKey(String chatId, String uuid) {
-        Map<String, Integer> userOfferCounts = hashOperations.get(KEY, chatId);
-        if (userOfferCounts != null) {
-            return userOfferCounts.containsKey(uuid);
-        }
-        hashOperations.put(KEY, chatId, new HashMap<>());
-        return false;
-    }
-
-    @Override
-    public void setExpire(Duration timeout) {
-        template.expire(KEY, timeout);
+    public boolean containsKey(String chatId) {
+        return hashOperations.hasKey(KEY, chatId);
     }
 }

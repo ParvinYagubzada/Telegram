@@ -9,11 +9,11 @@ import java.util.List;
 
 public interface OfferRepository extends JpaRepository<Offer, Long> {
 
-    Integer countAllByChatIdAndUuidAndBaseMessageIdIsNull(String chatId, String uuid);
+    Integer countAllByChatIdAndId_UuidAndBaseMessageIdIsNull(String chatId, String uuid);
 
     @Query("SELECT offer FROM Offer offer " +
             "WHERE offer.chatId = :chatId " +
-            "AND offer.uuid = :uuid " +
+            "AND offer.id.uuid = :uuid " +
             "AND offer.baseMessageId IS null " +
             "ORDER BY offer.timeStamp ASC ")
     List<Offer> findTop5(String chatId, String uuid, Pageable pageable);
@@ -22,4 +22,6 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
             "WHERE offer.chatId = :chatId " +
             "AND (offer.baseMessageId = :messageId OR offer.messageId = :messageId)")
     Offer getByMessageId(String chatId, String messageId);
+
+    boolean existsById_Uuid(String uuid);
 }
