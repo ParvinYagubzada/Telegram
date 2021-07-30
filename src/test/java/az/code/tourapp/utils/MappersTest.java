@@ -87,12 +87,12 @@ class MappersTest {
     @Test
     void contactToBotUser() {
         Contact contact = new Contact();
-        contact.setUserId(1L);
+        contact.setUserId(TEST_LONG);
         contact.setFirstName(TEST_NAME);
         contact.setLastName(TEST_SURNAME);
         contact.setPhoneNumber(PHONE_NUMBER);
         BotUser expected = BotUser.builder()
-                .userName(TEST_STRING).userId(1L)
+                .username(TEST_STRING).userId(TEST_LONG)
                 .firstName(TEST_NAME).lastName(TEST_SURNAME)
                 .phoneNumber(PHONE_NUMBER).build();
 
@@ -102,7 +102,7 @@ class MappersTest {
     @Test
     void botUserToAcceptedOffer() {
         BotUser botUser = BotUser.builder()
-                .userName(TEST_STRING).userId(1L)
+                .username(TEST_STRING).userId(TEST_LONG)
                 .firstName(TEST_NAME).lastName(TEST_SURNAME)
                 .phoneNumber(PHONE_NUMBER).build();
         AcceptedOffer expected = AcceptedOffer.builder()
@@ -116,7 +116,7 @@ class MappersTest {
     @Test
     void contactToAcceptedOffer() {
         Contact contact = new Contact();
-        contact.setUserId(1L);
+        contact.setUserId(TEST_LONG);
         contact.setFirstName(TEST_NAME);
         contact.setLastName(TEST_SURNAME);
         AcceptedOffer expected = AcceptedOffer.builder()

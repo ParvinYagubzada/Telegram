@@ -1,6 +1,5 @@
 package az.code.tourapp.bots;
 
-import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
@@ -49,6 +48,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static az.code.tourapp.configs.RabbitConfig.*;
 import static az.code.tourapp.helpers.BotHelper.*;
 import static az.code.tourapp.utils.CalendarUtil.IGNORE;
 
@@ -172,10 +172,9 @@ public class TourBot extends TelegramWebhookBot {
         String chatId = request.getChatId();
         store.save(new ByteArrayInputStream(offer.getData()), fileName);
         Offer newOffer = Offer.builder()
-                .uuid(uuid)
+                .id(new RequestId(offer.getAgencyName(), uuid))
                 .chatId(chatId)
-                .photoUrl(fileName)
-                .agencyName(offer.getAgencyName()).build();
+                .photoUrl(fileName).build();
         if (!offerCountRepo.containsKey(chatId) || offerCountRepo.findOfferCount(chatId) < 5) {
             offerCountRepo.incrementOfferCount(chatId);
             newOffer.setBaseMessageId(sendOfferPhoto(fileName, chatId, offer.getAgencyName()));
@@ -192,7 +191,7 @@ public class TourBot extends TelegramWebhookBot {
         for (String uuid : expiredRequestUuids) {
             Request request = requestRepo.findByUuid(uuid);
             String chatId = request.getChatId();
-            if (offerRepo.existsByUuid(uuid)) {
+            if (offerRepo.existsById_Uuid(uuid)) {
                 requestRepo.save(request.setExpirationTime(LocalDateTime.now().plusDays(expirationDays)));
                 execute(createCustomMessage(chatId, getText(messages.get("expirationInfoMessage"), request.getLang())));
             } else {
@@ -229,11 +228,15 @@ public class TourBot extends TelegramWebhookBot {
         Offer offer = offerRepo.getByMessageId(replyMessage.getChatId().toString(),
                 replyMessage.getMessageId().toString());
         if (offer != null) {
-            Request request = requestRepo.findByUuid(offer.getUuid());
+            Request request = requestRepo.findByUuid(offer.getId().getUuid());
             Locale locale = request.getLang();
             userRepo.save(mappers.contactToBotUser(username, contact));
-            rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
-                    mappers.contactToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), username, contact));
+            rabbit.convertAndSend(ACCEPTED_EXCHANGE, ACCEPTED_KEY, mappers.contactToAcceptedOffer(
+                    offer.getId().getUuid(),
+                    offer.getId().getAgencyName(),
+                    username,
+                    contact
+            ));
             sendInfoMessage(offer, locale);
             requestRepo.save(request.setAccepted(true));
         }
@@ -243,7 +246,7 @@ public class TourBot extends TelegramWebhookBot {
         String chatId = replyToMessage.getChatId().toString();
         Integer messageId = replyToMessage.getMessageId();
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Request request = requestRepo.findByUuid(offer.getUuid());
+        Request request = requestRepo.findByUuid(offer.getId().getUuid());
         if (!isValid(chatId, request)) return;
         Locale locale = request.getLang();
         SendMessage message = createRequestContactMessage(userMessage, messageId, offer, locale);
@@ -257,7 +260,8 @@ public class TourBot extends TelegramWebhookBot {
             sendErrorMessage(new MultipleAcceptanceException(), chatId);
             return deactivateRequestAndClearCache(request);
         }
-        if (!request.isActive() || request.getExpirationTime().isBefore(LocalDateTime.now())) {
+        if (!request.isActive() || request.getExpirationTime() != null &&
+                request.getExpirationTime().isBefore(LocalDateTime.now())) {
             sendErrorMessage(new RequestExpiredException(), chatId);
             return deactivateRequestAndClearCache(request);
         }
@@ -266,7 +270,7 @@ public class TourBot extends TelegramWebhookBot {
 
     private boolean deactivateRequestAndClearCache(Request request) {
         requestRepo.save(request.setActive(false));
-        rabbit.convertAndSend(RabbitConfig.STOP_EXCHANGE, RabbitConfig.STOP_KEY, request.getUuid());
+        rabbit.convertAndSend(STOP_EXCHANGE, STOP_KEY, request.getUuid());
         contactRepo.deleteMessageId(request.getChatId());
         offerCountRepo.deleteOfferCount(request.getChatId());
         return false;
@@ -280,7 +284,7 @@ public class TourBot extends TelegramWebhookBot {
         SendMessage result = SendMessage.builder()
                 .chatId(chatId)
                 .replyToMessageId(messageId)
-                .text(String.format(getText(messages.get("sendContactMessage"), locale), offer.getAgencyName()))
+                .text(String.format(getText(messages.get("sendContactMessage"), locale), offer.getId().getAgencyName()))
                 .build();
         createPermissionMessage(locale, user, result);
         return result;
@@ -311,7 +315,7 @@ public class TourBot extends TelegramWebhookBot {
         Request request = requestRepo.findByUuid(uuid);
         offerRepo.saveAll(list.stream()
                 .map(offer -> {
-                    String messageId = sendOfferPhoto(offer.getPhotoUrl(), chatId, offer.getAgencyName());
+                    String messageId = sendOfferPhoto(offer.getPhotoUrl(), chatId, offer.getId().getAgencyName());
                     return offer.toBuilder().baseMessageId(messageId).build();
                 })
                 .collect(Collectors.toList()));
@@ -348,7 +352,7 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void handleMoreOffers(String chatId, String uuid, Request request) throws TelegramApiException {
-        int count = offerRepo.countAllByChatIdAndUuidAndBaseMessageIdIsNull(chatId, uuid);
+        int count = offerRepo.countAllByChatIdAndId_UuidAndBaseMessageIdIsNull(chatId, uuid);
         if (count != 0) {
             if (!lastMessageRepo.containsKey(chatId)) {
                 lastMessageRepo.saveLastMessageId(chatId,
@@ -408,13 +412,13 @@ public class TourBot extends TelegramWebhookBot {
     private void handleContactAnswer(String chatId, String text, User user) throws TelegramApiException {
         Integer messageId = contactRepo.findMessageId(chatId);
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
-        Request request = requestRepo.findByUuid(offer.getUuid());
+        Request request = requestRepo.findByUuid(offer.getId().getUuid());
         Locale locale = request.getLang();
         switch (extractKey(text, locale)) {
             case "sendContact" -> {
                 Optional<BotUser> botUser = userRepo.findById(user.getId());
-                botUser.ifPresent(value -> rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
-                        mappers.botUserToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), value)));
+                botUser.ifPresent(value -> rabbit.convertAndSend(ACCEPTED_EXCHANGE, ACCEPTED_KEY,
+                        mappers.botUserToAcceptedOffer(offer.getId().getUuid(), offer.getId().getAgencyName(), value)));
                 sendInfoMessage(offer, locale);
                 requestRepo.save(request.setAccepted(true));
             }
@@ -430,7 +434,7 @@ public class TourBot extends TelegramWebhookBot {
     private void sendInfoMessage(Offer offer, Locale locale) throws TelegramApiException {
         String chatId = offer.getChatId();
         execute(createCustomMessage(chatId,
-                String.format(getText(messages.get("agencyInformed"), locale), offer.getAgencyName())));
+                String.format(getText(messages.get("agencyInformed"), locale), offer.getId().getAgencyName())));
         contactRepo.deleteMessageId(chatId);
     }
 
@@ -453,7 +457,7 @@ public class TourBot extends TelegramWebhookBot {
             data.data().put("uuid", uuid);
             logger.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
-            rabbit.convertAndSend(RabbitConfig.REQUEST_EXCHANGE, RabbitConfig.REQUEST_KEY, data.data());
+            rabbit.convertAndSend(REQUEST_EXCHANGE, REQUEST_KEY, data.data());
             userDataRepo.deleteByChatId(chatId);
         }
     }

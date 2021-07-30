@@ -27,6 +27,7 @@ public class TourAppApplicationTests {
     public static final Integer MESSAGE_ID = 12345;
     public static final Locale LOCALE = Locale.EN;
 
+    public static final long TEST_LONG = 1L;
     public static final String TEST_NAME = "John";
     public static final String TEST_STRING = "test";
     public static final String TEST_SURNAME = "Doe";

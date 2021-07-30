@@ -14,15 +14,15 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "offers")
 public class Offer {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+
+    @EmbeddedId
+    RequestId id;
+
     private String chatId;
     private String baseMessageId;
     private String messageId;
-    private String uuid;
     private String photoUrl;
-    private String agencyName;
+
     @CreationTimestamp
     private LocalDateTime timeStamp;
 }

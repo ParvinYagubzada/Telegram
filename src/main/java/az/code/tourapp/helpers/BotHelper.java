@@ -1,6 +1,5 @@
 package az.code.tourapp.helpers;
 
-import az.code.tourapp.configs.RabbitConfig;
 import az.code.tourapp.enums.ButtonType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.Translatable;
@@ -28,6 +27,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_EXCHANGE;
+import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_KEY;
 import static az.code.tourapp.utils.CalendarUtil.createButton;
 
 public class BotHelper {
@@ -50,8 +51,12 @@ public class BotHelper {
         contact.setFirstName(user.getFirstName());
         contact.setLastName(user.getLastName());
         contact.setUserId(user.getId());
-        rabbit.convertAndSend(RabbitConfig.ACCEPTED_EXCHANGE, RabbitConfig.ACCEPTED_KEY,
-                mappers.contactToAcceptedOffer(offer.getUuid(), offer.getAgencyName(), user.getUserName(), contact));
+        rabbit.convertAndSend(ACCEPTED_EXCHANGE, ACCEPTED_KEY, mappers.contactToAcceptedOffer(
+                offer.getId().getUuid(),
+                offer.getId().getAgencyName(),
+                user.getUserName(),
+                contact
+        ));
     }
 
     public static ReplyKeyboardMarkup createKeyboard(List<Action> actions, Locale locale) {
