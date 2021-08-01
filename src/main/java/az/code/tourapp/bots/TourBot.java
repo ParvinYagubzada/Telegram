@@ -23,8 +23,7 @@ import az.code.tourapp.utils.Mappers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Example;
@@ -55,12 +54,12 @@ import static az.code.tourapp.utils.CalendarUtil.IGNORE;
 @Setter
 @Builder
 @ToString
+@Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false, exclude = "commands")
 public class TourBot extends TelegramWebhookBot {
 
-    public static final Logger logger = LoggerFactory.getLogger(TourBot.class);
     public static final String OFFER_QUEUE = "offerQueue";
     public static final String EXPIRATION_QUEUE = "expirationQueue";
 
@@ -127,8 +126,12 @@ public class TourBot extends TelegramWebhookBot {
                 action.accept(update);
             } else {
                 String chatId = update.getMessage().getChatId().toString();
-                Locale locale = requestRepo.findByChatIdAndActiveIsTrue(chatId).getLang();
-                sendErrorMessage(new CommandNotFoundException(), locale != null ? locale : Locale.EN, chatId);
+                Request request = requestRepo.findByChatIdAndActiveIsTrue(chatId);
+                sendErrorMessage(
+                        new CommandNotFoundException(),
+                        request != null ? request.getLang() : Locale.DEFAULT,
+                        chatId
+                );
             }
         } else {
             Message message = update.getMessage();
@@ -365,10 +368,9 @@ public class TourBot extends TelegramWebhookBot {
         if (count != 0) {
             if (!lastMessageRepo.containsKey(chatId)) {
                 lastMessageRepo.saveLastMessageId(chatId,
-                        execute(createLoadMore(chatId, uuid, request.getLang(), count)).getMessageId());
+                        sendLoadMoreButton(chatId, uuid, request.getLang(), count).getMessageId());
             } else {
-                execute(editLoadMore(chatId, uuid, lastMessageRepo.findLastMessageId(chatId),
-                        request.getLang(), count));
+                editLoadMoreButton(chatId, uuid, lastMessageRepo.findLastMessageId(chatId), request.getLang(), count);
             }
         } else if (!request.isActive()) {
             lastMessageRepo.deleteLastMessageId(chatId);
@@ -376,19 +378,21 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
-    private SendMessage createLoadMore(String chatId, String uuid, Locale locale, Integer count) {
-        return SendMessage.builder()
+    private Message sendLoadMoreButton(String chatId, String uuid, Locale locale, Integer count) throws TelegramApiException {
+        return execute(SendMessage.builder()
                 .chatId(chatId)
                 .text(String.format(getText(messages.get("loadMoreMessage"), locale), count))
-                .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build();
+                .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build()
+        );
     }
 
-    private EditMessageText editLoadMore(String chatId, String uuid, Integer messageId, Locale locale, Integer count) {
-        return EditMessageText.builder()
+    private void editLoadMoreButton(String chatId, String uuid, Integer messageId, Locale locale, Integer count) throws TelegramApiException {
+        execute(EditMessageText.builder()
                 .chatId(chatId)
                 .messageId(messageId)
                 .text(String.format(getText(messages.get("loadMoreMessage"), locale), count))
-                .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build();
+                .replyMarkup(createSingleButtonKeyboard(uuid, getText(messages.get("loadMore"), locale))).build()
+        );
     }
 
     private void handleMessage(String chatId, String text, User user) throws TelegramApiException {
@@ -473,7 +477,7 @@ public class TourBot extends TelegramWebhookBot {
                     .accepted(false)
                     .build());
             data.data().put("uuid", uuid);
-            logger.info("USER=" + user.getFirstName() + "\n" +
+            log.info("USER=" + user.getFirstName() + "\n" +
                     mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data.data()));
             rabbit.convertAndSend(REQUEST_EXCHANGE, REQUEST_KEY, data.data());
             userDataRepo.deleteByChatId(chatId);

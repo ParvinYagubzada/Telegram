@@ -85,6 +85,7 @@ class MappersTest {
     }
 
     @Test
+    @DisplayName("Mappers - Contact to BotUser")
     void contactToBotUser() {
         Contact contact = new Contact();
         contact.setUserId(TEST_LONG);
@@ -100,6 +101,7 @@ class MappersTest {
     }
 
     @Test
+    @DisplayName("Mappers - BotUser to AcceptedOffer")
     void botUserToAcceptedOffer() {
         BotUser botUser = BotUser.builder()
                 .username(TEST_STRING).userId(TEST_LONG)
@@ -114,6 +116,7 @@ class MappersTest {
     }
 
     @Test
+    @DisplayName("Mappers - Contact to AcceptedOffer")
     void contactToAcceptedOffer() {
         Contact contact = new Contact();
         contact.setUserId(TEST_LONG);
@@ -124,10 +127,6 @@ class MappersTest {
                 .firstName(TEST_NAME).lastName(TEST_SURNAME).userId("1")
                 .build();
 
-        assertEquals(expected, mappers.contactToAcceptedOffer(UUID, AGENCY_NAME, TEST_STRING, contact));
-
-        contact.setPhoneNumber(null);
-        expected.setPhoneNumber(null);
         assertEquals(expected, mappers.contactToAcceptedOffer(UUID, AGENCY_NAME, TEST_STRING, contact));
     }
 }
