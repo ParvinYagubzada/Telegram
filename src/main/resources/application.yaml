@@ -47,11 +47,11 @@ telegram:
         text: "You have %d more offers."
         textAz: "Sizin daha %d təklifiniz var."
         textRu: "У вас есть еще %d предложений."
-      sendContact:
+      sendInfoWithPhone:
         text: Yes, send my contact info.
         textAz: Bəli, şəxsi məlumatlarım yollanılsın.
         textRu: Tercumeye ehtiyac var.
-      sendContactCancel:
+      sendInfoWithoutPhone:
         text: No, agency should contact me via telegram.
         textAz: Xeyir, agentlik yalnız telegram vasitəsi ilə əlqə qursun.
         textRu: Нет, агентство должно связаться со мной по телеграмме.

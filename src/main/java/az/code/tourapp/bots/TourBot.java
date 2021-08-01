@@ -101,15 +101,19 @@ public class TourBot extends TelegramWebhookBot {
     @SneakyThrows
     @Override
     public BotApiMethod<?> onWebhookUpdateReceived(Update update) {
-        if (update.hasCallbackQuery()) {
-            handleCallbackQuery(update.getCallbackQuery());
-        } else if (update.hasMessage()) {
-            Message message = update.getMessage();
-            if (message.hasText()) {
-                handleTextMessage(update);
-            } else if (message.isReply()) {
-                handleContact(message.getReplyToMessage(), message.getFrom().getUserName(), message.getContact());
+        try {
+            if (update.hasCallbackQuery()) {
+                handleCallbackQuery(update.getCallbackQuery());
+            } else if (update.hasMessage()) {
+                Message message = update.getMessage();
+                if (message.hasText()) {
+                    handleTextMessage(update);
+                } else if (message.isReply()) {
+                    handleContact(message.getReplyToMessage(), message.getFrom().getUserName(), message.getContact());
+                }
             }
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -121,6 +125,10 @@ public class TourBot extends TelegramWebhookBot {
             Consumer<Update> action;
             if ((action = commands.get(new Command(msg))) != null) {
                 action.accept(update);
+            } else {
+                String chatId = update.getMessage().getChatId().toString();
+                Locale locale = requestRepo.findByChatIdAndActiveIsTrue(chatId).getLang();
+                sendErrorMessage(new CommandNotFoundException(), locale != null ? locale : Locale.EN, chatId);
             }
         } else {
             Message message = update.getMessage();
@@ -256,13 +264,14 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private boolean isValid(String chatId, Request request) throws TelegramApiException {
+        Locale locale = request.getLang();
         if (request.isAccepted()) {
-            sendErrorMessage(new MultipleAcceptanceException(), chatId);
+            sendErrorMessage(new MultipleAcceptanceException(), locale, chatId);
             return deactivateRequestAndClearCache(request);
         }
         if (!request.isActive() || request.getExpirationTime() != null &&
                 request.getExpirationTime().isBefore(LocalDateTime.now())) {
-            sendErrorMessage(new RequestExpiredException(), chatId);
+            sendErrorMessage(new RequestExpiredException(), locale, chatId);
             return deactivateRequestAndClearCache(request);
         }
         return true;
@@ -293,14 +302,14 @@ public class TourBot extends TelegramWebhookBot {
     private void createPermissionMessage(Locale locale, Optional<BotUser> user, SendMessage result) {
         if (user.isPresent()) {
             result.setReplyMarkup(createRequestContactKeyboard(
-                    Pair.of(getText(messages.get("sendContact"), locale) + " (" + user.get().getPhoneNumber() + ")",
+                    Pair.of(getText(messages.get("sendInfoWithPhone"), locale) + " (" + user.get().getPhoneNumber() + ")",
                             ButtonType.DEFAULT),
                     Pair.of(getText(messages.get("sendContactEdit"), locale), ButtonType.CONTACT),
-                    Pair.of(getText(messages.get("sendContactCancel"), locale), ButtonType.DEFAULT)));
+                    Pair.of(getText(messages.get("sendInfoWithoutPhone"), locale), ButtonType.DEFAULT)));
         } else {
             result.setReplyMarkup(createRequestContactKeyboard(
                     Pair.of(getText(messages.get("saveAndSendContact"), locale), ButtonType.CONTACT),
-                    Pair.of(getText(messages.get("sendContactCancel"), locale), ButtonType.DEFAULT)));
+                    Pair.of(getText(messages.get("sendInfoWithoutPhone"), locale), ButtonType.DEFAULT)));
         }
     }
 
@@ -414,21 +423,30 @@ public class TourBot extends TelegramWebhookBot {
         Offer offer = offerRepo.getByMessageId(chatId, messageId.toString());
         Request request = requestRepo.findByUuid(offer.getId().getUuid());
         Locale locale = request.getLang();
-        switch (extractKey(text, locale)) {
-            case "sendContact" -> {
-                Optional<BotUser> botUser = userRepo.findById(user.getId());
-                botUser.ifPresent(value -> rabbit.convertAndSend(ACCEPTED_EXCHANGE, ACCEPTED_KEY,
-                        mappers.botUserToAcceptedOffer(offer.getId().getUuid(), offer.getId().getAgencyName(), value)));
-                sendInfoMessage(offer, locale);
-                requestRepo.save(request.setAccepted(true));
+        try {
+            switch (extractKey(text, locale)) {
+                case "sendInfoWithPhone" -> {
+                    Optional<BotUser> botUser = userRepo.findById(user.getId());
+                    botUser.ifPresent(value -> rabbit.convertAndSend(ACCEPTED_EXCHANGE, ACCEPTED_KEY,
+                            mappers.botUserToAcceptedOffer(offer.getId().getUuid(), offer.getId().getAgencyName(), value)));
+                    sendInfoMessage(offer, locale);
+                    requestRepo.save(request.setAccepted(true));
+                }
+                case "sendInfoWithoutPhone" -> {
+                    checkUsername(user);
+                    sendPreUserInfo(user, offer, rabbit, mappers);
+                    sendInfoMessage(offer, locale);
+                    requestRepo.save(request.setAccepted(true));
+                }
+                default -> sendErrorMessage(new IllegalOptionException(), locale, chatId);
             }
-            case "sendContactCancel" -> {
-                sendPreUserInfo(user, offer, rabbit, mappers);
-                sendInfoMessage(offer, locale);
-                requestRepo.save(request.setAccepted(true));
-            }
-            default -> sendErrorMessage(new IllegalOptionException(), chatId);
+        } catch (MissingUsernameException e) {
+            sendErrorMessage(e, locale, chatId);
         }
+    }
+
+    private void checkUsername(User user) {
+        if (user.getUserName() == null) throw new MissingUsernameException();
     }
 
     private void sendInfoMessage(Offer offer, Locale locale) throws TelegramApiException {
@@ -487,11 +505,15 @@ public class TourBot extends TelegramWebhookBot {
         return messages.entrySet().stream()
                 .filter(entry -> text.startsWith(getText(entry.getValue(), locale)))
                 .map(Map.Entry::getKey)
-                .findFirst().orElseThrow(RuntimeException::new);
+                .findFirst().orElse("unknown");
     }
 
     private void sendErrorMessage(Translatable exception, String chatId) throws TelegramApiException {
         Locale locale = userDataRepo.findByChatId(chatId) != null ? userDataRepo.findByChatId(chatId).userLang() : null;
+        sendErrorMessage(exception, locale, chatId);
+    }
+
+    private void sendErrorMessage(Translatable exception, Locale locale, String chatId) throws TelegramApiException {
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
                 .text(getText(exception, locale))

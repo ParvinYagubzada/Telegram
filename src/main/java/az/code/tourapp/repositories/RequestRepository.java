@@ -11,9 +11,9 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     boolean existsByChatIdAndActiveIsTrue(String chatId);
 
-    Request findByUuidAndActiveIsTrue(String uuid);
-
     Request findByChatIdAndActiveIsTrue(String chatId);
+
+    Request findByUuidAndActiveIsTrue(String uuid);
 
     @Cacheable(value = "request")
     Request findByUuid(String uuid);
