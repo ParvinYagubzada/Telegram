@@ -6,7 +6,10 @@ import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.utils.CalendarUtil;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -29,9 +32,11 @@ import java.util.stream.IntStream;
 import static az.code.tourapp.TourAppApplicationTests.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@TestMethodOrder(MethodOrderer.DisplayName.class)
 class BotHelperTest {
 
     @Test
+    @DisplayName("BotHelper - handleCalendarControls()")
     void handleCalendarControls() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         String choice = "<" + LocalDate.now().format(formatter);
@@ -45,6 +50,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createKeyboard()")
     void createKeyboard() {
         List<Action> actions = IntStream.range(1, 10)
                 .mapToObj(value -> Action.builder().text("This is test action no:" + value).build())
@@ -67,6 +73,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createSingleButtonKeyboard()")
     void createSingleButtonKeyboard() {
         InlineKeyboardMarkup expected = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> row = new ArrayList<>();
@@ -81,6 +88,18 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createInlineButton()")
+    void createInlineButton() {
+        String callBack = "testCallback";
+        InlineKeyboardButton expected = InlineKeyboardButton.builder()
+                .callbackData(callBack)
+                .text(TEST_STRING)
+                .build();
+        assertEquals(expected, BotHelper.createInlineButton(callBack, TEST_STRING));
+    }
+
+    @Test
+    @DisplayName("BotHelper - createRequestContactKeyboard()")
     void createRequestContactKeyboard() {
         CustomMessage message = CustomMessage.builder()
                 .text(">_< 0_0 >_< 0_0 >_< 0_0 >_< 0_0")
@@ -108,6 +127,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createEditMessage()")
     void createEditMessage() {
         EditMessageText expected = EditMessageText.builder()
                 .chatId(CHAT_ID)
@@ -118,6 +138,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createDeleteMessage()")
     void createDeleteMessage() {
         DeleteMessage expected = DeleteMessage.builder()
                 .chatId(CHAT_ID)
@@ -127,6 +148,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - createCustomMessage()")
     void createCustomMessage() {
         SendMessage expected = SendMessage.builder()
                 .chatId(CHAT_ID)
@@ -136,14 +158,14 @@ class BotHelperTest {
         assertEquals(expected, BotHelper.createCustomMessage(CHAT_ID, TEST_STRING));
     }
 
-    @SuppressWarnings("SpellCheckingInspection")
     @Test
+    @DisplayName("BotHelper - extractLocale()")
     void extractLocale() {
-        String data = "{\"travelEndDate\":\"20.07.2021\",\"tourType\":\"Istirahət-gəzinti\",\"travelStartDate\":\"21.07.2021\",\"language\":\"AZ\",\"travellerCount\":\"1234\",\"addressFrom\":\"Baki\",\"addressTo\":\"TurAl təklif etsin\",\"budget\":\"1234\"}";
-        assertEquals(Locale.AZ, BotHelper.extractLocale(data));
+        assertEquals(Locale.AZ, BotHelper.extractLocale(JSON_DATA));
     }
 
     @Test
+    @DisplayName("BotHelper - getText()")
     void getText() {
         Translatable entry = CustomMessage.builder().text(TEST_STRING).build();
         assertEquals(TEST_STRING, BotHelper.getText(entry, LOCALE));

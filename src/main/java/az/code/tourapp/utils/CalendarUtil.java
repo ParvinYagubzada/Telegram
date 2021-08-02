@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static az.code.tourapp.helpers.BotHelper.createInlineButton;
+
 public class CalendarUtil {
 
     public static final String IGNORE = "ignore";
@@ -30,7 +32,7 @@ public class CalendarUtil {
 
     private static void createMonthRow(Locale locale, LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         List<InlineKeyboardButton> headerRow = new ArrayList<>();
-        headerRow.add(createButton(IGNORE, headerFormat.withLocale(locale).print(date)));
+        headerRow.add(createInlineButton(IGNORE, headerFormat.withLocale(locale).print(date)));
         keyboard.add(headerRow);
     }
 
@@ -38,9 +40,9 @@ public class CalendarUtil {
         List<InlineKeyboardButton> daysOfWeekRow = new ArrayList<>();
         String[] weekNames = new DateFormatSymbols(locale).getShortWeekdays();
         for (int i = 2; i < weekNames.length; i++) {
-            daysOfWeekRow.add(createButton(IGNORE, weekNames[i]));
+            daysOfWeekRow.add(createInlineButton(IGNORE, weekNames[i]));
         }
-        daysOfWeekRow.add(createButton(IGNORE, weekNames[1]));
+        daysOfWeekRow.add(createInlineButton(IGNORE, weekNames[1]));
         keyboard.add(daysOfWeekRow);
     }
 
@@ -59,8 +61,8 @@ public class CalendarUtil {
 
     private static void createControlsRow(LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         List<InlineKeyboardButton> controlsRow = new ArrayList<>();
-        controlsRow.add(createButton("<" + format.print(date), "<"));
-        controlsRow.add(createButton(">" + format.print(date), ">"));
+        controlsRow.add(createInlineButton("<" + format.print(date), "<"));
+        controlsRow.add(createInlineButton(">" + format.print(date), ">"));
         keyboard.add(controlsRow);
     }
 
@@ -69,21 +71,17 @@ public class CalendarUtil {
         int day = date.getDayOfMonth();
         LocalDate callbackDate = date;
         for (int j = 0; j < shift; j++) {
-            row.add(createButton(IGNORE, IGNORE_TEXT));
+            row.add(createInlineButton(IGNORE, IGNORE_TEXT));
         }
         for (int j = shift; j < 7; j++) {
             if (day <= (date.dayOfMonth().getMaximumValue())) {
-                row.add(createButton(format.print(callbackDate), Integer.toString(day++)));
+                row.add(createInlineButton(format.print(callbackDate), Integer.toString(day++)));
                 callbackDate = callbackDate.plusDays(1);
             } else {
-                row.add(createButton(IGNORE, " "));
+                row.add(createInlineButton(IGNORE, " "));
             }
         }
         return row;
-    }
-
-    public static InlineKeyboardButton createButton(String callBack, String text) {
-        return InlineKeyboardButton.builder().callbackData(callBack).text(text).build();
     }
 
     public static org.joda.time.LocalDate toJodaLocalDate(java.time.LocalDate input) {

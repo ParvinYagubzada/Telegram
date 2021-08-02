@@ -33,7 +33,6 @@ public class FilesStorageServiceImpl implements FilesStorageService {
         try {
             Files.copy(file, this.root.resolve(fileName));
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
         }
     }

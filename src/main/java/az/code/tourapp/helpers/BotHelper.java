@@ -29,7 +29,6 @@ import java.util.List;
 
 import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_EXCHANGE;
 import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_KEY;
-import static az.code.tourapp.utils.CalendarUtil.createButton;
 
 public class BotHelper {
 
@@ -80,10 +79,14 @@ public class BotHelper {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> row = new ArrayList<>();
         List<InlineKeyboardButton> sub = new ArrayList<>();
-        sub.add(createButton("loadMore&" + uuid, text));
+        sub.add(createInlineButton("loadMore&" + uuid, text));
         row.add(sub);
         keyboard.setKeyboard(row);
         return keyboard;
+    }
+
+    public static InlineKeyboardButton createInlineButton(String callBack, String text) {
+        return InlineKeyboardButton.builder().callbackData(callBack).text(text).build();
     }
 
     @SafeVarargs
@@ -93,8 +96,10 @@ public class BotHelper {
         for (Pair<String, ButtonType> message : messages) {
             KeyboardButton button = KeyboardButton.builder()
                     .text(message.getFirst()).build();
-            if (message.getSecond() == ButtonType.CONTACT)
-                button.setRequestContact(true);
+            switch (message.getSecond()) {
+                case CONTACT -> button.setRequestContact(true);
+                case LOCATION -> button.setRequestLocation(true);
+            }
             row.add(button);
             keyboard.add(row);
             row = new KeyboardRow();

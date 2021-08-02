@@ -1,8 +1,9 @@
 package az.code.tourapp.utils;
 
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
@@ -15,9 +16,11 @@ import java.util.Locale;
 import static az.code.tourapp.utils.CalendarUtil.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@TestMethodOrder(MethodOrderer.DisplayName.class)
 class CalendarUtilTest {
 
     @Test
+    @DisplayName("CalendarUtil - createCalendar()")
     void createCalendar() {
         Locale locale = az.code.tourapp.enums.Locale.EN.getJavaLocale();
         LocalDate javaDate = LocalDate.of(2021, 7, 28);
@@ -76,7 +79,7 @@ class CalendarUtilTest {
                     } else {
                         day = addNormalButton(row, day);
                     }
-                    
+
                 }
             }
             keyboard.add(row);
@@ -113,16 +116,7 @@ class CalendarUtilTest {
     }
 
     @Test
-    void createButton() {
-        String callBack = "testCallback", text = "testText";
-        InlineKeyboardButton expected = InlineKeyboardButton.builder()
-                .callbackData(callBack)
-                .text(text)
-                .build();
-        assertEquals(expected, CalendarUtil.createButton(callBack, text));
-    }
-
-    @Test
+    @DisplayName("CalendarUtil - toJodaLocalDate()")
     void toJodaLocalDate() {
         org.joda.time.LocalDate expected = org.joda.time.LocalDate.now();
         LocalDate date = LocalDate.now();
