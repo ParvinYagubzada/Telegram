@@ -67,3 +67,11 @@ telegram:
         text: "Do you want to accept %s's offer?"
         textAz: "%s agentliyinin təklifini qəbul etmək istəyirsinizmi?"
         textRu: "Вы хотите принять предложение %s?"
+      acceptanceInfo:
+        text: If you want to accept the offer you need to reply it. Reply message can be anything you want.
+        textAz: Təklifləri qəbul etmək üçün mesajı sola sürüşdürüb istinad etmək lazımdır. İstinad mesajı istənilən hər şey ola bilər.
+        textRu: Если вы хотите принять предложение, вам необходимо ответить на него. Ответное сообщение может быть любым.
+      pleaseWait:
+        text: Please wait until you receive an offer.
+        textAz: Xahiş olunur təklifin gəlməyini gözləyəsiniz.
+        textRu: Подождите, пока вы не получите предложение.
