@@ -30,7 +30,6 @@ public class Request implements Serializable {
     private Locale lang;
     private String data;
     private boolean active;
-    private boolean accepted;
     @CreationTimestamp
     private LocalDateTime creationTime;
     private LocalDateTime expirationTime;

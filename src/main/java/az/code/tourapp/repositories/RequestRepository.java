@@ -15,7 +15,7 @@ public interface RequestRepository extends JpaRepository<Request, String> {
 
     Request findByUuidAndActiveIsTrue(String uuid);
 
-    @Cacheable(value = "request")
+    @Cacheable("request")
     Request findByUuid(String uuid);
 
     @CacheEvict("request")

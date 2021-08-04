@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static az.code.tourapp.TourAppApplication.DATE_FORMAT_STRING;
 import static az.code.tourapp.TourAppApplicationTests.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -38,7 +39,7 @@ class BotHelperTest {
     @Test
     @DisplayName("BotHelper - handleCalendarControls()")
     void handleCalendarControls() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
         String choice = "<" + LocalDate.now().format(formatter);
         LocalDate newDate = LocalDate.parse(choice.substring(1), formatter).minusMonths(1);
         EditMessageReplyMarkup expected = EditMessageReplyMarkup.builder()
