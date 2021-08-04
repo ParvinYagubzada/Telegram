@@ -11,6 +11,8 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
 
     Integer countAllByChatIdAndId_UuidAndBaseMessageIdIsNull(String chatId, String uuid);
 
+    List<Offer> findAllByChatIdAndId_UuidAndBaseMessageIdIsNull(String chatId, String uuid);
+
     @Query("SELECT offer FROM Offer offer " +
             "WHERE offer.chatId = :chatId " +
             "AND offer.id.uuid = :uuid " +

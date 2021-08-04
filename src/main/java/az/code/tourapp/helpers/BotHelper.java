@@ -27,12 +27,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static az.code.tourapp.TourAppApplication.DATE_FORMAT_STRING;
 import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_EXCHANGE;
 import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_KEY;
 
 public class BotHelper {
 
-    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
 
     public static EditMessageReplyMarkup handleCalendarControls(String chatId, Locale locale, Integer messageId, String choice) {
         LocalDate newDate = choice.startsWith("<") ?
@@ -141,7 +142,7 @@ public class BotHelper {
     }
 
     public static String getText(Translatable entry, Locale locale) {
-        if (locale == null) return entry.getText();
+        if (locale == null) locale = Locale.DEFAULT;
         return switch (locale) {
             case EN -> entry.getText();
             case AZ -> entry.getTextAz();

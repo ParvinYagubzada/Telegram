@@ -11,13 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static az.code.tourapp.TourAppApplication.DATE_FORMAT_STRING;
 import static az.code.tourapp.helpers.BotHelper.createInlineButton;
 
 public class CalendarUtil {
 
     public static final String IGNORE = "ignore";
     public static final String IGNORE_TEXT = " ";
-    public static final DateTimeFormatter format = DateTimeFormat.forPattern("dd.MM.yyyy");
+    public static final DateTimeFormatter format = DateTimeFormat.forPattern(DATE_FORMAT_STRING);
     public static final DateTimeFormatter headerFormat = DateTimeFormat.forPattern("MMMM yyyy");
 
     public static InlineKeyboardMarkup createCalendar(java.time.LocalDate input, Locale locale) {

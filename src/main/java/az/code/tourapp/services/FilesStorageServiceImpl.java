@@ -69,9 +69,7 @@ public class FilesStorageServiceImpl implements FilesStorageService {
             Path file = root.resolve(offer.getPhotoUrl());
             try {
                 Files.delete(file);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            } catch (IOException ignored) {}
         }
     }
 }
