@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 
 import static az.code.tourapp.configs.RabbitConfig.*;
 import static az.code.tourapp.helpers.BotHelper.*;
-import static az.code.tourapp.utils.CalendarUtil.*;
+import static az.code.tourapp.utils.CalendarUtil.IGNORE;
 
 @Setter
 @Builder
@@ -351,8 +351,8 @@ public class TourBot extends TelegramWebhookBot {
             } else {
                 try {
                     Action action = cacheData.currentQuestion().getActions().get(0);
-                    String start = convertRepresentation(action.getText(), String.class);
-                    String end = convertRepresentation(action.getTextAz(), String.class);
+                    LocalDate start = convertRepresentation(action.getText(), LocalDate.class);
+                    LocalDate end = convertRepresentation(action.getTextAz(), LocalDate.class);
                     execute(handleCalendarControls(chatId, locale, messageId, choice, start, end));
                 } catch (TelegramApiException exception) {
                     if (!exception.getMessage().startsWith("Error editing message reply markup:")) {
@@ -437,7 +437,7 @@ public class TourBot extends TelegramWebhookBot {
                 }
                 case "sendInfoWithoutPhone" -> {
                     checkUsername(user);
-                    sendPreUserInfo(user, offer, rabbit, mappers);
+                    sendPreUserInfo(user, offer.getId(), rabbit, mappers);
                     sendInfoMessage(offer, locale);
                 }
                 default -> sendErrorMessage(new IllegalOptionException(), locale, chatId);
@@ -509,13 +509,7 @@ public class TourBot extends TelegramWebhookBot {
             result = false;
         } else if (actions.get(0).getType() == ActionType.DATE) {
             Action action = actions.get(0);
-            org.joda.time.LocalDate now = toJodaLocalDate(LocalDate.now());
-            String startString = convertRepresentation(action.getText(), String.class);
-            String endString = convertRepresentation(action.getTextAz(), String.class);
-            org.joda.time.LocalDate start = format.parseLocalDate(startString);
-            org.joda.time.LocalDate end = format.parseLocalDate(endString);
-            message.setText(String.format(message.getText(), startString, endString));
-            message.setReplyMarkup(createCalendar(now, start, end, locale.getJavaLocale()));
+            configureCalendarMessage(locale, message, action);
         } else if (actions.get(0).getType() == ActionType.BUTTON) {
             message.setReplyMarkup(createKeyboard(actions, locale));
         } else {

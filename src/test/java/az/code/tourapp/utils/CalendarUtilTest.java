@@ -1,18 +1,20 @@
 package az.code.tourapp.utils;
 
-import org.joda.time.LocalDate;
-import org.junit.jupiter.api.*;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.text.DateFormatSymbols;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static az.code.tourapp.TourAppApplicationTests.CHAT_ID;
-import static az.code.tourapp.TourAppApplicationTests.MESSAGE_ID;
+import static az.code.tourapp.TourAppApplicationTests.LOCALE;
+import static az.code.tourapp.helpers.BotHelper.formatter;
 import static az.code.tourapp.utils.CalendarUtil.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -22,8 +24,8 @@ class CalendarUtilTest {
     @Test
     @DisplayName("CalendarUtil - createCalendar()")
     void createCalendar() {
-        Locale locale = az.code.tourapp.enums.Locale.EN.getJavaLocale();
-        org.joda.time.LocalDate date = format.parseLocalDate("28.07.2021");
+        Locale locale = LOCALE.getJavaLocale();
+        LocalDate date = LocalDate.parse("28.07.2021", formatter);
         InlineKeyboardMarkup expected = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         createMonthRow(locale, date, keyboard);
@@ -34,11 +36,11 @@ class CalendarUtilTest {
         assertEquals(expected, CalendarUtil.createCalendar(date, date.minusMonths(12), date.plusMonths(12), locale));
     }
 
-    private void createMonthRow(Locale locale, org.joda.time.LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
+    private void createMonthRow(Locale locale, LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         List<InlineKeyboardButton> headerRow = new ArrayList<>();
         headerRow.add(InlineKeyboardButton.builder()
                 .callbackData(IGNORE)
-                .text(headerFormat.withLocale(locale).print(date))
+                .text(headerFormat.withLocale(locale).format(date))
                 .build());
         keyboard.add(headerRow);
     }
@@ -88,7 +90,7 @@ class CalendarUtilTest {
 
     private int addNormalButton(List<InlineKeyboardButton> row, int day) {
         row.add(InlineKeyboardButton.builder()
-                .callbackData(format.print(new org.joda.time.LocalDate(2021, 7, day)))
+                .callbackData(formatter.format(LocalDate.of(2021, 7, day)))
                 .text(Integer.toString(day++))
                 .build());
         return day;
@@ -101,42 +103,16 @@ class CalendarUtilTest {
                 .build());
     }
 
-    private void createControlsRow(org.joda.time.LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
+    private void createControlsRow(LocalDate date, List<List<InlineKeyboardButton>> keyboard) {
         List<InlineKeyboardButton> controlsRow = new ArrayList<>();
         controlsRow.add(InlineKeyboardButton.builder()
-                .callbackData("<" + format.print(date))
+                .callbackData("<" + formatter.format(date))
                 .text("<")
                 .build());
         controlsRow.add(InlineKeyboardButton.builder()
-                .callbackData(">" + format.print(date))
+                .callbackData(">" + formatter.format(date))
                 .text(">")
                 .build());
         keyboard.add(controlsRow);
     }
-
-    @Test
-    @DisplayName("CalendarUtil - toJodaLocalDate()")
-    void toJodaLocalDate() {
-        LocalDate expected = LocalDate.now();
-        java.time.LocalDate date = java.time.LocalDate.now();
-        assertEquals(expected, CalendarUtil.toJodaLocalDate(date));
-    }
-
-    @Test
-    @Disabled
-    @DisplayName("CalendarUtil - handleCalendarControls()")
-    void handleCalendarControls() {
-        String start = "01.01.2000";
-        String end = "31.12.2050";
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
-//        String choice = "<" + LocalDate.now().format(formatter);
-//        LocalDate newDate = LocalDate.parse(choice.substring(1), formatter).minusMonths(1);
-        EditMessageReplyMarkup expected = EditMessageReplyMarkup.builder()
-                .chatId(CHAT_ID)
-                .messageId(MESSAGE_ID)
-//                .replyMarkup(CalendarUtil.createCalendar(newDate, LOCALE.getJavaLocale()))
-                .build();
-//        assertEquals(expected, CalendarUtil.handleCalendarControls(CHAT_ID, LOCALE, MESSAGE_ID, choice, start, end));
-    }
-
 }
