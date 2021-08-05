@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.redis.core.RedisHash;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -21,5 +20,5 @@ import java.util.Map;
 public class UserData implements Serializable {
     Locale userLang;
     Question currentQuestion;
-    Map<String, String> data = new HashMap<>();
+    Map<String, String> data;
 }

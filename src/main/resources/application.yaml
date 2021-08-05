@@ -75,3 +75,7 @@ telegram:
         text: Please wait until you receive an offer.
         textAz: Xahiş olunur təklifin gəlməyini gözləyəsiniz.
         textRu: Подождите, пока вы не получите предложение.
+      calendarNotification:
+        text: Please select only calendar numbers.
+        textAz: Xahiş olunur yalnız kalendardaki ədədləri istifadə edəsiniz.
+        textRu: Пожалуйста, используйте только числа в календаре.

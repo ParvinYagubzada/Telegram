@@ -1,5 +1,6 @@
 package az.code.tourapp.models.entities;
 
+import az.code.tourapp.enums.ActionType;
 import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.user.IllegalOptionException;
 import az.code.tourapp.exceptions.user.InputMismatchException;
@@ -16,6 +17,8 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+
+import static az.code.tourapp.helpers.BotHelper.handleDateType;
 
 @Getter
 @Setter
@@ -42,15 +45,17 @@ public class Question implements Translatable, Serializable {
             Optional<Action> find = this.actions.stream()
                     .filter(action -> BotHelper.getText(action, locale).equals(actionText))
                     .findFirst();
-            if (find.isPresent())
-                return find.get();
-            throw new IllegalOptionException();
+            return find.orElseThrow(IllegalOptionException::new);
         } else {
-            String regex = this.actions.get(0).getText();
-            Pattern pattern = Pattern.compile(regex);
-            if (pattern.matcher(actionText).matches())
-                return this.actions.get(0);
-            throw new InputMismatchException();
+            Action action = this.actions.get(0);
+            if (action.getType() == ActionType.FREETEXT) {
+                Pattern pattern = Pattern.compile(action.getText());
+                if (pattern.matcher(actionText).matches())
+                    return action;
+                throw new InputMismatchException();
+            } else {
+                return handleDateType(actionText, action);
+            }
         }
     }
 
