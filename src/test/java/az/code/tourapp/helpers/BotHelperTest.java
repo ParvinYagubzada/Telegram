@@ -5,7 +5,6 @@ import az.code.tourapp.enums.Locale;
 import az.code.tourapp.models.CustomMessage;
 import az.code.tourapp.models.Translatable;
 import az.code.tourapp.models.entities.Action;
-import az.code.tourapp.utils.CalendarUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -13,7 +12,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.data.util.Pair;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -22,33 +20,16 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static az.code.tourapp.TourAppApplication.DATE_FORMAT_STRING;
 import static az.code.tourapp.TourAppApplicationTests.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 class BotHelperTest {
-
-    @Test
-    @DisplayName("BotHelper - handleCalendarControls()")
-    void handleCalendarControls() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
-        String choice = "<" + LocalDate.now().format(formatter);
-        LocalDate newDate = LocalDate.parse(choice.substring(1), formatter).minusMonths(1);
-        EditMessageReplyMarkup expected = EditMessageReplyMarkup.builder()
-                .chatId(CHAT_ID)
-                .messageId(MESSAGE_ID)
-                .replyMarkup(CalendarUtil.createCalendar(newDate, LOCALE.getJavaLocale()))
-                .build();
-        assertEquals(expected, BotHelper.handleCalendarControls(CHAT_ID, LOCALE, MESSAGE_ID, choice));
-    }
 
     @Test
     @DisplayName("BotHelper - createKeyboard()")
