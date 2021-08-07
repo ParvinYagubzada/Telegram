@@ -1,11 +1,11 @@
 package az.code.tourapp.models.entities;
 
 import az.code.tourapp.enums.ActionType;
-import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.user.IllegalOptionException;
 import az.code.tourapp.exceptions.user.InputMismatchException;
 import az.code.tourapp.helpers.BotHelper;
 import az.code.tourapp.models.Translatable;
+import az.code.tourapp.models.UserData;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,10 +40,10 @@ public class Question implements Translatable, Serializable {
     @OneToMany(mappedBy = "baseQuestion", fetch = FetchType.EAGER)
     private List<Action> actions;
 
-    public Action findNext(String actionText, Locale locale) {
+    public Action findNext(String actionText, UserData data) {
         if (this.actions.size() != 1) {
             Optional<Action> find = this.actions.stream()
-                    .filter(action -> BotHelper.getText(action, locale).equals(actionText))
+                    .filter(action -> BotHelper.getText(action, data.userLang()).equals(actionText))
                     .findFirst();
             return find.orElseThrow(IllegalOptionException::new);
         } else {
@@ -54,7 +54,7 @@ public class Question implements Translatable, Serializable {
                     return action;
                 throw new InputMismatchException();
             } else {
-                return handleDateType(actionText, action);
+                return handleDateType(actionText, data.data(), action);
             }
         }
     }
