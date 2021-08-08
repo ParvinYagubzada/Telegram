@@ -149,7 +149,7 @@ public class TourBot extends TelegramWebhookBot {
         Question question = questionRepo.findById(firstQuestionId).orElseThrow(MissingFirstQuestionException::new);
         UserData data = UserData.builder().currentQuestion(question).build();
         userDataRepo.saveByChatId(chatId, data);
-        sendQuestion(chatId, Locale.DEFAULT, question);
+        sendQuestion(chatId, null, question);
     }
 
     @SneakyThrows
@@ -351,8 +351,8 @@ public class TourBot extends TelegramWebhookBot {
             } else {
                 try {
                     Action action = cacheData.currentQuestion().getActions().get(0);
-                    LocalDate start = convertRepresentation(action.getText(), LocalDate.class);
-                    LocalDate end = convertRepresentation(action.getTextAz(), LocalDate.class);
+                    LocalDate start = convertRepresentation(action.getText(), cacheData.data(), LocalDate.class);
+                    LocalDate end = convertRepresentation(action.getTextAz(), cacheData.data(), LocalDate.class);
                     execute(handleCalendarControls(chatId, locale, messageId, choice, start, end));
                 } catch (TelegramApiException exception) {
                     if (!exception.getMessage().startsWith("Error editing message reply markup:")) {
@@ -407,7 +407,7 @@ public class TourBot extends TelegramWebhookBot {
         }
         Question currentQuestion = data.currentQuestion();
         try {
-            Action currentAction = currentQuestion.findNext(text, data.userLang());
+            Action currentAction = currentQuestion.findNext(text, data);
             String answer = currentAction.getType() == ActionType.BUTTON ? currentAction.getFieldName() : text;
             if (data.userLang() == null) {
                 data.data(new HashMap<>());
@@ -475,7 +475,7 @@ public class TourBot extends TelegramWebhookBot {
     }
 
     private void handleNextQuestion(UserData data, String chatId, User user, Question nextQuestion) throws TelegramApiException, JsonProcessingException {
-        if (sendQuestion(chatId, data.userLang(), nextQuestion)) {
+        if (sendQuestion(chatId, data, nextQuestion)) {
             userDataRepo.saveByChatId(chatId, data.currentQuestion(nextQuestion));
         } else {
             ObjectMapper mapper = new ObjectMapper();
@@ -486,7 +486,7 @@ public class TourBot extends TelegramWebhookBot {
                     .chatId(chatId)
                     .clientId(user.getId().toString())
                     .data(userData)
-                    .lang(extractLocale(userData))
+                    .lang(data.userLang())
                     .active(true)
                     .build());
             data.data().put("uuid", uuid);
@@ -497,8 +497,9 @@ public class TourBot extends TelegramWebhookBot {
         }
     }
 
-    private boolean sendQuestion(String chatId, Locale locale, Question question) throws TelegramApiException {
+    private boolean sendQuestion(String chatId, UserData userData, Question question) throws TelegramApiException {
         boolean result = true;
+        Locale locale = userData != null ? userData.userLang() : Locale.DEFAULT;
         SendMessage message = SendMessage.builder()
                 .chatId(chatId)
                 .text(getText(question, locale))
@@ -509,7 +510,8 @@ public class TourBot extends TelegramWebhookBot {
             result = false;
         } else if (actions.get(0).getType() == ActionType.DATE) {
             Action action = actions.get(0);
-            configureCalendarMessage(locale, message, action);
+            assert userData != null;
+            configureCalendarMessage(userData, message, action);
         } else if (actions.get(0).getType() == ActionType.BUTTON) {
             message.setReplyMarkup(createKeyboard(actions, locale));
         } else {

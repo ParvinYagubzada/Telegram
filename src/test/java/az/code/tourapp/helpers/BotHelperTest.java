@@ -1,7 +1,6 @@
 package az.code.tourapp.helpers;
 
 import az.code.tourapp.enums.ButtonType;
-import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.user.DateMismatchException;
 import az.code.tourapp.exceptions.user.InputMismatchException;
 import az.code.tourapp.models.CustomMessage;
@@ -38,6 +37,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -58,31 +58,31 @@ class BotHelperTest {
     RabbitTemplate template;
 
     @Test
-    @DisplayName("BotHelper - handleCalendarControls() - Valid")
+    @DisplayName("BotHelper - handleDateType() - Valid")
     void handleDateType() {
         String actionText = "15.06.2020";
         Action action = Action.builder().text("13.06.2020").textAz("13.07.2020").build();
-        assertEquals(action, BotHelper.handleDateType(actionText, action));
+        assertEquals(action, BotHelper.handleDateType(actionText, null, action));
         actionText = "13.06.2020";
-        assertEquals(action, BotHelper.handleDateType(actionText, action));
+        assertEquals(action, BotHelper.handleDateType(actionText, null, action));
         actionText = "13.07.2020";
-        assertEquals(action, BotHelper.handleDateType(actionText, action));
+        assertEquals(action, BotHelper.handleDateType(actionText, null, action));
     }
 
     @Test
-    @DisplayName("BotHelper - handleCalendarControls() - DateMismatchException")
+    @DisplayName("BotHelper - handleDateType() - DateMismatchException")
     void handleDateType_DateMismatchException() {
         String actionText = "12.06.2020";
         Action action = Action.builder().text("13.06.2020").textAz("13.07.2020").build();
         assertThrows(DateMismatchException.class, () ->
-                BotHelper.handleDateType(actionText, action));
+                BotHelper.handleDateType(actionText, null, action));
     }
 
     @Test
-    @DisplayName("BotHelper - handleCalendarControls() - InputMismatchException")
+    @DisplayName("BotHelper - handleDateType() - InputMismatchException")
     void handleDateType_InputMismatchException() {
         assertThrows(InputMismatchException.class, () ->
-                BotHelper.handleDateType(TEST_STRING, new Action()));
+                BotHelper.handleDateType(TEST_STRING, null, new Action()));
     }
 
     @Test
@@ -90,8 +90,8 @@ class BotHelperTest {
     void convertRepresentation() {
         String dateString = "13.06.2020";
         LocalDate date = LocalDate.parse(dateString, formatter);
-        assertEquals(dateString, BotHelper.convertRepresentation(dateString, String.class));
-        assertEquals(date, BotHelper.convertRepresentation(dateString, LocalDate.class));
+        assertEquals(dateString, BotHelper.convertRepresentation(dateString, null, String.class));
+        assertEquals(date, BotHelper.convertRepresentation(dateString, null, LocalDate.class));
     }
 
     @Test
@@ -100,8 +100,33 @@ class BotHelperTest {
         String dateString = "plusDays 2";
         LocalDate expectedDate = LocalDate.now().plusDays(2);
         String expected = formatter.format(expectedDate);
-        assertEquals(expected, BotHelper.convertRepresentation(dateString, String.class));
-        assertEquals(expectedDate, BotHelper.convertRepresentation(dateString, LocalDate.class));
+        assertEquals(expected, BotHelper.convertRepresentation(dateString, null, String.class));
+        assertEquals(expectedDate, BotHelper.convertRepresentation(dateString, null, LocalDate.class));
+    }
+
+    @Test
+    @DisplayName("BotHelper - convertRepresentation() - Valid")
+    void convertRepresentation_Special_Dependent() {
+        String dateString = "plusDays 2 sampleDate";
+        String sampleDate = "12.12.2012";
+        Map<String, String> sampleMap = Map.of("sampleDate", sampleDate);
+        LocalDate expectedDate = LocalDate.parse(sampleDate, formatter).plusDays(2);
+        String expected = formatter.format(expectedDate);
+        assertEquals(expected, BotHelper.convertRepresentation(dateString, sampleMap, String.class));
+        assertEquals(expectedDate, BotHelper.convertRepresentation(dateString, sampleMap, LocalDate.class));
+    }
+
+    @Test
+    @DisplayName("BotHelper - convertRepresentation() - NullPointerException")
+    void convertRepresentation_Special_NullPointerException() {
+        String dateString = "plusDays 2 asd";
+        String sampleDate = "12.12.2012";
+        Map<String, String> sampleMap = Map.of("sampleDate", sampleDate);
+        assertThrows(NullPointerException.class,
+                () -> BotHelper.convertRepresentation(dateString, sampleMap, String.class));
+        assertThrows(NullPointerException.class,
+                () -> BotHelper.convertRepresentation(dateString, sampleMap, LocalDate.class));
+
     }
 
     @Test
@@ -110,16 +135,16 @@ class BotHelperTest {
         String dateString = "random 2";
         LocalDate expectedDate = LocalDate.now();
         String expected = formatter.format(expectedDate);
-        assertEquals(expected, BotHelper.convertRepresentation(dateString, String.class));
-        assertEquals(expectedDate, BotHelper.convertRepresentation(dateString, LocalDate.class));
+        assertEquals(expected, BotHelper.convertRepresentation(dateString, null, String.class));
+        assertEquals(expectedDate, BotHelper.convertRepresentation(dateString, null, LocalDate.class));
     }
 
     @Test
     @DisplayName("BotHelper - convertRepresentation() - DateTimeParseException")
     void convertRepresentation_Invalid_Format() {
         String dateString = "1234";
-        assertEquals(dateString, BotHelper.convertRepresentation(dateString, String.class));
-        assertThrows(DateTimeParseException.class, () -> BotHelper.convertRepresentation(dateString, LocalDate.class));
+        assertEquals(dateString, BotHelper.convertRepresentation(dateString, null, String.class));
+        assertThrows(DateTimeParseException.class, () -> BotHelper.convertRepresentation(dateString, null, LocalDate.class));
     }
 
     @Test
@@ -138,6 +163,7 @@ class BotHelperTest {
     }
 
     @Test
+    @DisplayName("BotHelper - sendPreUserInfo()")
     void sendPreUserInfo() {
         User user = createUser();
         Contact contact = createContact();
@@ -275,12 +301,6 @@ class BotHelperTest {
                 .text(TEST_STRING)
                 .build();
         assertEquals(expected, BotHelper.createCustomMessage(CHAT_ID, TEST_STRING));
-    }
-
-    @Test
-    @DisplayName("BotHelper - extractLocale()")
-    void extractLocale() {
-        assertEquals(Locale.AZ, BotHelper.extractLocale(JSON_DATA));
     }
 
     @Test

@@ -5,6 +5,7 @@ import az.code.tourapp.enums.Locale;
 import az.code.tourapp.exceptions.user.DateMismatchException;
 import az.code.tourapp.exceptions.user.InputMismatchException;
 import az.code.tourapp.models.Translatable;
+import az.code.tourapp.models.UserData;
 import az.code.tourapp.models.entities.Action;
 import az.code.tourapp.models.entities.RequestId;
 import az.code.tourapp.utils.Mappers;
@@ -31,6 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static az.code.tourapp.TourAppApplication.DATE_FORMAT_STRING;
 import static az.code.tourapp.configs.RabbitConfig.ACCEPTED_EXCHANGE;
@@ -43,11 +45,11 @@ public class BotHelper {
     public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
     public static String DATE_REGEX = "\\d{2}\\.\\d{2}\\.\\d{4}";
 
-    public static Action handleDateType(String actionText, Action action) {
+    public static Action handleDateType(String actionText, Map<String, String> data, Action action) {
         try {
             LocalDate selectedDate = LocalDate.parse(actionText, formatter);
-            String start = convertRepresentation(action.getText(), String.class);
-            String end = convertRepresentation(action.getTextAz(), String.class);
+            String start = convertRepresentation(action.getText(), data, String.class);
+            String end = convertRepresentation(action.getTextAz(), data, String.class);
             LocalDate startDate = LocalDate.parse(start, formatter);
             LocalDate endDate = LocalDate.parse(end, formatter);
             if (startDate.compareTo(selectedDate) < 1 && endDate.compareTo(selectedDate) > -1)
@@ -59,13 +61,14 @@ public class BotHelper {
         }
     }
 
-    public static <T> T convertRepresentation(String dateRepresentation, Class<T> tClass) {
+    public static <T> T convertRepresentation(String dateRepresentation, Map<String, String> data, Class<T> tClass) {
         if (dateRepresentation.matches("^\\p{Alpha}.+")) {
-            String[] data = dateRepresentation.split(" ");
-            LocalDate date = LocalDate.now();
+            String[] representations = dateRepresentation.split(" ");
+            LocalDate date = representations.length == 3 ?
+                    LocalDate.parse(data.get(representations[2]), formatter) : LocalDate.now();
             try {
-                Method method = LocalDate.class.getMethod(data[0], long.class);
-                date = (LocalDate) method.invoke(date, Integer.valueOf(data[1]));
+                Method method = LocalDate.class.getMethod(representations[0], long.class);
+                date = (LocalDate) method.invoke(date, Integer.valueOf(representations[1]));
             } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
                 log.error(e.getMessage(), e);
             }
@@ -87,14 +90,14 @@ public class BotHelper {
                 .build();
     }
 
-    public static void configureCalendarMessage(Locale locale, SendMessage message, Action action) {
+    public static void configureCalendarMessage(UserData userData, SendMessage message, Action action) {
         LocalDate now = LocalDate.now();
-        String startString = convertRepresentation(action.getText(), String.class);
-        String endString = convertRepresentation(action.getTextAz(), String.class);
+        String startString = convertRepresentation(action.getText(), userData.data(), String.class);
+        String endString = convertRepresentation(action.getTextAz(), userData.data(), String.class);
         LocalDate start = LocalDate.parse(startString, formatter);
         LocalDate end = LocalDate.parse(endString, formatter);
         message.setText(String.format(message.getText(), startString, endString));
-        message.setReplyMarkup(createCalendar(now, start, end, locale.getJavaLocale()));
+        message.setReplyMarkup(createCalendar(now, start, end, userData.userLang().getJavaLocale()));
     }
 
     public static void sendPreUserInfo(User user, RequestId id, RabbitTemplate rabbit, Mappers mappers) {
@@ -184,12 +187,6 @@ public class BotHelper {
                 .replyMarkup(ReplyKeyboardRemove.builder().removeKeyboard(true).build())
                 .text(myMessage)
                 .build();
-    }
-
-    public static Locale extractLocale(String data) {
-        String fieldName = "language\":\"";
-        int start = data.indexOf(fieldName) + fieldName.length();
-        return Locale.valueOf(data.substring(start, start + 2));
     }
 
     public static String getText(Translatable entry, Locale locale) {
